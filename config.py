@@ -16,4 +16,4 @@ CHANNELS = 1
 RECORDING_DURATION = 5  # seconds to record per turn
 
 # Frontend Settings
-FRONTEND_URL = "http://localhost:5000/api/order"
+FRONTEND_URL = "http://localhost:3001/api/order"

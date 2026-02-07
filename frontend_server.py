@@ -1,9 +1,10 @@
 # frontend_server.py
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from datetime import datetime
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='frontend')
 CORS(app)
 
 # Store orders in memory (in production, use database)
@@ -44,12 +45,38 @@ def get_latest_order():
         return jsonify(orders[-1]), 200
     return jsonify({"error": "No orders yet"}), 404
 
+@app.route('/')
+def index():
+    """Serve the kiosk display (portrait responsive)"""
+    return send_from_directory('frontend', 'kiosk-display.html')
+
+@app.route('/touch')
+def touch_interface():
+    """Serve the touch ordering interface (if needed)"""
+    return send_from_directory('frontend', 'touch-interface.html')
+
+@app.route('/css/<path:path>')
+def send_css(path):
+    """Serve CSS files"""
+    return send_from_directory('frontend/css', path)
+
+@app.route('/js/<path:path>')
+def send_js(path):
+    """Serve JavaScript files"""
+    return send_from_directory('frontend/js', path)
+
+@app.route('/images/<path:path>')
+def send_images(path):
+    """Serve image files"""
+    return send_from_directory('frontend/images', path)
+
 if __name__ == '__main__':
     print("\n🖥️  Frontend Server Starting...")
-    print("Listening on http://localhost:5000")
+    print("Listening on http://localhost:3001")
     print("Endpoints:")
+    print("  GET  / - Kiosk Interface")
     print("  POST /api/order - Receive order updates")
     print("  GET /api/orders - Get all orders")
     print("  GET /api/orders/latest - Get latest order")
     print("\n")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=3001, debug=True)
