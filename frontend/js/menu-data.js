@@ -1,0 +1,94 @@
+// Menu data with emoji icons
+const menuData = {
+    burgers: {
+        "Classic Burger": {
+            price: 5.99,
+            icon: "🍔",
+            modifiers: ["no pickles", "no onions", "extra cheese", "no lettuce", "add bacon"],
+            description: "Beef patty with lettuce, tomato, pickles, onions",
+            category: "burgers"
+        },
+        "Cheeseburger": {
+            price: 6.49,
+            icon: "🍔",
+            modifiers: ["no pickles", "no onions", "extra cheese", "add bacon", "no lettuce"],
+            description: "Beef patty with cheese, lettuce, tomato, pickles",
+            category: "burgers"
+        },
+        "Double Burger": {
+            price: 7.99,
+            icon: "🍔",
+            modifiers: ["no pickles", "no onions", "extra cheese", "add bacon"],
+            description: "Two beef patties with all the fixings",
+            category: "burgers"
+        }
+    },
+    combos: {
+        "Combo #1": {
+            price: 9.99,
+            icon: "🍔🍟🥤",
+            includes: ["Classic Burger", "Medium Fries", "Medium Drink"],
+            description: "Classic Burger meal deal - save $2!",
+            category: "combos"
+        },
+        "Combo #2": {
+            price: 10.99,
+            icon: "🍔🍟🥤",
+            includes: ["Cheeseburger", "Medium Fries", "Medium Drink"],
+            description: "Cheeseburger meal deal - save $2!",
+            category: "combos"
+        },
+        "Combo #3": {
+            price: 12.99,
+            icon: "🍔🍟🥤",
+            includes: ["Double Burger", "Large Fries", "Large Drink"],
+            description: "Double Burger meal deal - save $3!",
+            category: "combos"
+        }
+    },
+    sides: {
+        "Fries": {
+            price: 2.99,
+            icon: "🍟",
+            sizes: ["small", "medium", "large"],
+            size_prices: { small: 2.99, medium: 3.49, large: 3.99 },
+            category: "sides"
+        },
+        "Onion Rings": {
+            price: 3.49,
+            icon: "🧅",
+            sizes: ["small", "medium", "large"],
+            size_prices: { small: 3.49, medium: 3.99, large: 4.49 },
+            category: "sides"
+        },
+        "Mozzarella Sticks": {
+            price: 4.99,
+            icon: "🧀",
+            description: "Crispy mozzarella sticks with marinara",
+            category: "sides"
+        }
+    },
+    drinks: {
+        "Coke": {
+            price: 1.99,
+            icon: "🥤",
+            sizes: ["small", "medium", "large"],
+            size_prices: { small: 1.99, medium: 2.29, large: 2.59 },
+            category: "drinks"
+        },
+        "Sprite": {
+            price: 1.99,
+            icon: "🥤",
+            sizes: ["small", "medium", "large"],
+            size_prices: { small: 1.99, medium: 2.29, large: 2.59 },
+            category: "drinks"
+        },
+        "Lemonade": {
+            price: 2.49,
+            icon: "🍋",
+            sizes: ["small", "medium", "large"],
+            size_prices: { small: 2.49, medium: 2.79, large: 3.09 },
+            category: "drinks"
+        }
+    }
+};

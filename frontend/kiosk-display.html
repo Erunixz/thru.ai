@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <title>Burger Express - Drive Thru Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(180deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(90deg, #DA291C 0%, #c41e14 100%);
+            padding: 2vh 3vw;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            min-height: 8vh;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 2vw;
+        }
+
+        .logo-circle {
+            width: 5vw;
+            height: 5vw;
+            min-width: 60px;
+            min-height: 60px;
+            max-width: 100px;
+            max-height: 100px;
+            background: #FFC72C;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(32px, 3vw, 60px);
+            font-weight: bold;
+            color: #DA291C;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .logo-text {
+            font-size: clamp(24px, 2.5vw, 48px);
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 1vw;
+            background: rgba(255,255,255,0.2);
+            padding: 1vh 2vw;
+            border-radius: 50px;
+        }
+
+        .status-dot {
+            width: 1vw;
+            height: 1vw;
+            min-width: 12px;
+            min-height: 12px;
+            max-width: 20px;
+            max-height: 20px;
+            background: #27AE60;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .status-text {
+            font-size: clamp(16px, 1.5vw, 24px);
+            font-weight: 600;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            padding: 3vh 4vw;
+            overflow-y: auto;
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+        }
+
+        .welcome-icon {
+            font-size: clamp(80px, 12vw, 250px);
+            margin-bottom: 3vh;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-30px); }
+        }
+
+        .welcome-title {
+            font-size: clamp(32px, 4vw, 80px);
+            font-weight: bold;
+            color: #FFC72C;
+            margin-bottom: 2vh;
+            text-shadow: 0 4px 20px rgba(255,199,44,0.5);
+        }
+
+        .welcome-subtitle {
+            font-size: clamp(24px, 2.5vw, 48px);
+            color: #ddd;
+            margin-bottom: 4vh;
+        }
+
+        .welcome-message {
+            font-size: clamp(20px, 2vw, 42px);
+            color: #aaa;
+            font-style: italic;
+        }
+
+        /* Order Screen */
+        .order-screen {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+        }
+
+        .order-screen.active {
+            display: flex;
+        }
+
+        .order-header {
+            text-align: center;
+            margin-bottom: 3vh;
+        }
+
+        .order-title {
+            font-size: clamp(28px, 3.5vw, 64px);
+            font-weight: bold;
+            color: #FFC72C;
+            margin-bottom: 1vh;
+        }
+
+        .ai-status {
+            font-size: clamp(18px, 2vw, 36px);
+            color: #27AE60;
+            font-style: italic;
+        }
+
+        /* Order Items */
+        .order-items {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 2vh;
+        }
+
+        .order-items::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .order-items::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .order-items::-webkit-scrollbar-thumb {
+            background: #FFC72C;
+            border-radius: 10px;
+        }
+
+        .order-item {
+            background: linear-gradient(135deg, #2d2d2d 0%, #3a3a3a 100%);
+            border-left: 0.5vw solid #FFC72C;
+            padding: 2vh 2vw;
+            margin-bottom: 1.5vh;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1vh;
+            flex-wrap: wrap;
+            gap: 1vw;
+        }
+
+        .item-name {
+            font-size: clamp(22px, 2.5vw, 48px);
+            font-weight: bold;
+            color: white;
+        }
+
+        .item-quantity {
+            font-size: clamp(20px, 2.2vw, 42px);
+            color: #FFC72C;
+            background: rgba(255,199,44,0.2);
+            padding: 0.5vh 1.5vw;
+            border-radius: 50px;
+        }
+
+        .item-details {
+            font-size: clamp(16px, 1.8vw, 32px);
+            color: #bbb;
+            margin-bottom: 1vh;
+        }
+
+        .item-price {
+            font-size: clamp(24px, 2.8vw, 52px);
+            font-weight: bold;
+            color: #27AE60;
+            text-align: right;
+        }
+
+        /* Order Summary */
+        .order-summary {
+            background: linear-gradient(135deg, #DA291C 0%, #c41e14 100%);
+            padding: 2.5vh 3vw;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(218,41,28,0.5);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5vh;
+            font-size: clamp(18px, 2.2vw, 42px);
+        }
+
+        .summary-label {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .summary-value {
+            font-weight: bold;
+            color: white;
+        }
+
+        .summary-divider {
+            height: 3px;
+            background: rgba(255,255,255,0.3);
+            margin: 1.5vh 0;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: clamp(28px, 3.5vw, 72px);
+            font-weight: bold;
+            color: #FFC72C;
+            padding-top: 1vh;
+        }
+
+        /* Empty State */
+        .empty-order {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 30vh;
+            color: #666;
+            font-size: clamp(18px, 2vw, 38px);
+            text-align: center;
+        }
+
+        .empty-icon {
+            font-size: clamp(60px, 8vw, 150px);
+            margin-bottom: 2vh;
+            opacity: 0.5;
+        }
+
+        /* Completion Animation */
+        .completion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #27AE60 0%, #229954 100%);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.5s;
+        }
+
+        .completion-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .completion-icon {
+            font-size: clamp(80px, 15vw, 300px);
+            margin-bottom: 3vh;
+            animation: bounceIn 0.8s;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .completion-text {
+            font-size: clamp(36px, 5vw, 90px);
+            font-weight: bold;
+            margin-bottom: 2vh;
+        }
+
+        .completion-subtext {
+            font-size: clamp(24px, 3vw, 52px);
+            opacity: 0.9;
+        }
+
+        /* Responsive adjustments for mobile/portrait */
+        @media (max-width: 768px) {
+            .header {
+                padding: 2vh 4vw;
+            }
+
+            .logo-section {
+                gap: 3vw;
+            }
+
+            .status-indicator {
+                padding: 1vh 3vw;
+            }
+
+            .main-content {
+                padding: 2vh 4vw;
+            }
+
+            .item-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .item-quantity {
+                align-self: flex-end;
+            }
+        }
+
+        /* Landscape mode adjustments */
+        @media (orientation: landscape) and (max-height: 800px) {
+            .welcome-icon {
+                font-size: clamp(60px, 10vh, 150px);
+            }
+
+            .welcome-title {
+                font-size: clamp(24px, 6vh, 60px);
+            }
+
+            .welcome-subtitle {
+                font-size: clamp(18px, 4vh, 36px);
+            }
+
+            .order-title {
+                font-size: clamp(24px, 5vh, 48px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo-circle">B</div>
+            <div class="logo-text">BURGER EXPRESS</div>
+        </div>
+        <div class="status-indicator">
+            <div class="status-dot"></div>
+            <div class="status-text" id="statusText">Ready</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Welcome Screen (Default) -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-icon">🍔</div>
+            <div class="welcome-title">Welcome to Burger Express</div>
+            <div class="welcome-subtitle">Drive-Thru</div>
+            <div class="welcome-message">Pull up and we'll take your order!</div>
+        </div>
+
+        <!-- Order Screen -->
+        <div class="order-screen" id="orderScreen">
+            <div class="order-header">
+                <div class="order-title">Your Order</div>
+                <div class="ai-status" id="aiStatus">Listening to your order...</div>
+            </div>
+
+            <div class="order-items" id="orderItems">
+                <div class="empty-order">
+                    <div class="empty-icon">🎤</div>
+                    <div>Waiting for your order...</div>
+                </div>
+            </div>
+
+            <div class="order-summary" id="orderSummary" style="display: none;">
+                <div class="summary-row">
+                    <span class="summary-label">Subtotal</span>
+                    <span class="summary-value" id="subtotal">$0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Tax (8%)</span>
+                    <span class="summary-value" id="tax">$0.00</span>
+                </div>
+                <div class="summary-divider"></div>
+                <div class="summary-total">
+                    <span>TOTAL</span>
+                    <span id="total">$0.00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completion Overlay -->
+    <div class="completion-overlay" id="completionOverlay">
+        <div class="completion-icon">✅</div>
+        <div class="completion-text">Order Complete!</div>
+        <div class="completion-subtext">Please pull forward</div>
+    </div>
+
+    <script src="js/kiosk-display.js"></script>
+</body>
+</html>
