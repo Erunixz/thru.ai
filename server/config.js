@@ -1,62 +1,31 @@
 // =============================================================================
-// server/config.js — Central Configuration for the Node.js Backend
+// server/config.js — Central Configuration
 // =============================================================================
 //
-// PURPOSE:
-//   Loads environment variables from .env and exports a single config object
-//   used by all server modules. Every tunable setting lives here.
-//
-// USAGE:
-//   const config = require('./config');
-//   console.log(config.port); // 3001
+// Simplified for the ElevenLabs Conversational AI Agent architecture.
+// The agent handles STT, LLM, and TTS — we just need:
+//   - ELEVENLABS_API_KEY (to generate signed URLs)
+//   - ELEVENLABS_AGENT_ID (the agent created via setup-agent.js or dashboard)
 //
 // =============================================================================
 
-// Load .env file from the project root (one level up from /server)
 require('dotenv').config();
 
 const config = {
-  // ---------------------------------------------------------------------------
-  // Server Settings
-  // ---------------------------------------------------------------------------
   port: parseInt(process.env.PORT, 10) || 3001,
   nodeEnv: process.env.NODE_ENV || 'development',
 
-  // ---------------------------------------------------------------------------
-  // Anthropic Claude — Conversational AI
-  // ---------------------------------------------------------------------------
-  // The API key authenticates requests to Anthropic's Claude API.
-  // Claude processes customer speech, extracts order data, and generates replies.
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-
-  // Claude model name. Haiku = fastest/cheapest. Perfect for real-time drive-thru.
-  claudeModel: process.env.CLAUDE_MODEL || 'claude-haiku-4-5-20251001',
-
-  // ---------------------------------------------------------------------------
-  // ElevenLabs — Text-to-Speech
-  // ---------------------------------------------------------------------------
-  // The API key authenticates requests to ElevenLabs' TTS API.
-  // ElevenLabs converts Claude's text replies into natural human speech.
+  // ElevenLabs Conversational AI Agent
   elevenLabsApiKey: process.env.ELEVENLABS_API_KEY,
-
-  // Voice ID determines which voice speaks. Default = "Rachel" (warm, clear).
-  // For multilingual: map different voice IDs per language.
-  elevenLabsVoiceId: process.env.ELEVENLABS_VOICE_ID || '21m00Tcm4TlvDq8ikWAM',
-
-  // TTS model. "eleven_turbo_v2_5" is optimised for low-latency streaming.
-  elevenLabsModel: process.env.ELEVENLABS_MODEL || 'eleven_turbo_v2_5',
+  elevenLabsAgentId: process.env.ELEVENLABS_AGENT_ID,
 };
 
-// ---------------------------------------------------------------------------
-// Validation — Warn if required keys are missing
-// ---------------------------------------------------------------------------
-// We warn instead of crashing so the app can still start for UI development
-// without API keys configured. API calls will fail at runtime with clear errors.
-if (!config.anthropicApiKey) {
-  console.warn('⚠️  ANTHROPIC_API_KEY is not set. Claude AI will not work.');
-}
+// Validation warnings
 if (!config.elevenLabsApiKey) {
-  console.warn('⚠️  ELEVENLABS_API_KEY is not set. Text-to-speech will not work.');
+  console.warn('⚠️  ELEVENLABS_API_KEY is not set. Agent sessions will not work.');
+}
+if (!config.elevenLabsAgentId) {
+  console.warn('⚠️  ELEVENLABS_AGENT_ID is not set. Create an agent at https://elevenlabs.io/app/conversational-ai');
 }
 
 module.exports = config;

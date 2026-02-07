@@ -1,7 +1,7 @@
 {
   "name": "thru-ai",
   "version": "1.0.0",
-  "description": "AI-powered drive-through ordering system — replaces the human order-taker with an AI that listens, understands, speaks, and relays orders to the kitchen in real-time.",
+  "description": "AI-powered drive-through ordering system using ElevenLabs Conversational AI Agent.",
   "main": "server/index.js",
   "scripts": {
     "dev": "concurrently --names SERVER,CLIENT --prefix-colors blue,green \"nodemon server/index.js\" \"cd client && npm run dev\"",
@@ -10,10 +10,10 @@
     "client": "cd client && npm run dev",
     "build": "cd client && npm run build",
     "start": "NODE_ENV=production node server/index.js",
-    "install:all": "npm install && cd client && npm install"
+    "install:all": "npm install && cd client && npm install",
+    "setup-agent": "node server/setup-agent.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
