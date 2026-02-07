@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+client/dist/
+
+# Environment variables (contains API keys — NEVER commit)
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Python (from original prototype)
+__pycache__/
+*.pyc
+.venv/

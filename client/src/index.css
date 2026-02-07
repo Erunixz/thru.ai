@@ -1,0 +1,41 @@
+/* =============================================================================
+   index.css — Global Styles + Tailwind CSS Imports
+   =============================================================================
+   Tailwind's three layers:
+     @tailwind base       → CSS reset + base element styles
+     @tailwind components → Reusable component classes (e.g., .btn, .card)
+     @tailwind utilities  → Utility classes (e.g., .p-4, .text-xl, .bg-blue-500)
+   ============================================================================= */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   Custom Base Styles
+   --------------------------------------------------------------------------- */
+
+/* Set the default font to Inter for the entire app */
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Smooth scrolling throughout the app */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar styling for a cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
