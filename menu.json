@@ -1,5 +1,9 @@
 {
+  "_comment": "=== BURGER EXPRESS MENU === This JSON file is the single source of truth for all menu items. It gets injected into Claude's system prompt so the AI knows exactly what's available, prices, sizes, and allowed modifications. To add/remove items, just edit this file and restart main.py.",
+
   "burgers": {
+    "_comment": "Burgers are the core product. Each burger has a base price, a list of allowed modifiers (customisations), and a human-readable description. Claude uses the description to explain items to customers.",
+
     "Classic Burger": {
       "price": 5.99,
       "modifiers": ["no pickles", "no onions", "extra cheese", "no lettuce", "add bacon"],
@@ -16,7 +20,10 @@
       "description": "Two beef patties with all the fixings"
     }
   },
+
   "sides": {
+    "_comment": "Sides can have sizes (small/medium/large) with different prices. If an item has no 'sizes' key, it's one-size-only. Claude is instructed to ask about size when applicable.",
+
     "Fries": {
       "price": 2.99,
       "sizes": ["small", "medium", "large"],
@@ -31,7 +38,10 @@
       "price": 4.99
     }
   },
+
   "drinks": {
+    "_comment": "Drinks all have sizes. The base 'price' is the small price. Claude is trained to suggest combos when a customer orders a burger + fries + drink separately (combos save money).",
+
     "Coke": {
       "price": 1.99,
       "sizes": ["small", "medium", "large"],
@@ -48,7 +58,10 @@
       "size_prices": {"small": 2.49, "medium": 2.79, "large": 3.09}
     }
   },
+
   "combos": {
+    "_comment": "Combos bundle a burger + medium fries + medium drink at a discount. Claude proactively suggests these when it detects the customer ordering items separately. The 'includes' list tells Claude (and the kitchen) what's in each combo.",
+
     "Combo #1": {
       "price": 9.99,
       "includes": ["Classic Burger", "Medium Fries", "Medium Drink"],

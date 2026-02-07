@@ -1,0 +1,113 @@
+{
+  "burgers": {
+    "Classic Burger": {
+      "price": 5.99,
+      "modifiers": ["no pickles", "no onions", "extra cheese", "no lettuce", "add bacon"],
+      "description": "Beef patty with lettuce, tomato, pickles, onions"
+    },
+    "Cheeseburger": {
+      "price": 6.49,
+      "modifiers": ["no pickles", "no onions", "extra cheese", "add bacon", "no lettuce"],
+      "description": "Beef patty with cheese, lettuce, tomato, pickles"
+    },
+    "Double Burger": {
+      "price": 7.99,
+      "modifiers": ["no pickles", "no onions", "extra cheese", "add bacon"],
+      "description": "Two beef patties with all the fixings"
+    },
+    "Chicken Sandwich": {
+      "price": 6.99,
+      "modifiers": ["no lettuce", "no tomato", "extra sauce", "add cheese"],
+      "description": "Crispy chicken fillet with lettuce, tomato, and mayo"
+    },
+    "Veggie Burger": {
+      "price": 6.49,
+      "modifiers": ["no pickles", "no onions", "extra cheese", "add avocado"],
+      "description": "Plant-based patty with lettuce, tomato, pickles"
+    }
+  },
+  "sides": {
+    "Fries": {
+      "price": 2.99,
+      "sizes": ["small", "medium", "large"],
+      "size_prices": { "small": 2.99, "medium": 3.49, "large": 3.99 }
+    },
+    "Onion Rings": {
+      "price": 3.49,
+      "sizes": ["small", "medium", "large"],
+      "size_prices": { "small": 3.49, "medium": 3.99, "large": 4.49 }
+    },
+    "Mozzarella Sticks": {
+      "price": 4.99,
+      "description": "6-piece golden fried mozzarella sticks with marinara"
+    },
+    "Side Salad": {
+      "price": 3.99,
+      "description": "Fresh garden salad with choice of dressing"
+    }
+  },
+  "drinks": {
+    "Coke": {
+      "price": 1.99,
+      "sizes": ["small", "medium", "large"],
+      "size_prices": { "small": 1.99, "medium": 2.29, "large": 2.59 }
+    },
+    "Sprite": {
+      "price": 1.99,
+      "sizes": ["small", "medium", "large"],
+      "size_prices": { "small": 1.99, "medium": 2.29, "large": 2.59 }
+    },
+    "Lemonade": {
+      "price": 2.49,
+      "sizes": ["small", "medium", "large"],
+      "size_prices": { "small": 2.49, "medium": 2.79, "large": 3.09 }
+    },
+    "Iced Tea": {
+      "price": 2.29,
+      "sizes": ["small", "medium", "large"],
+      "size_prices": { "small": 2.29, "medium": 2.59, "large": 2.89 }
+    },
+    "Milkshake": {
+      "price": 4.49,
+      "flavors": ["chocolate", "vanilla", "strawberry"],
+      "description": "Hand-spun thick milkshake"
+    }
+  },
+  "combos": {
+    "Combo #1": {
+      "price": 9.99,
+      "includes": ["Classic Burger", "Medium Fries", "Medium Drink"],
+      "description": "Classic Burger meal deal — save $2!"
+    },
+    "Combo #2": {
+      "price": 10.99,
+      "includes": ["Cheeseburger", "Medium Fries", "Medium Drink"],
+      "description": "Cheeseburger meal deal — save $2!"
+    },
+    "Combo #3": {
+      "price": 12.99,
+      "includes": ["Double Burger", "Large Fries", "Large Drink"],
+      "description": "Double Burger meal deal — save $3!"
+    },
+    "Combo #4": {
+      "price": 11.49,
+      "includes": ["Chicken Sandwich", "Medium Fries", "Medium Drink"],
+      "description": "Chicken Sandwich meal deal — save $2!"
+    }
+  },
+  "desserts": {
+    "Apple Pie": {
+      "price": 2.49,
+      "description": "Warm baked apple pie"
+    },
+    "Chocolate Chip Cookie": {
+      "price": 1.99,
+      "description": "Fresh baked chocolate chip cookie"
+    },
+    "Sundae": {
+      "price": 3.49,
+      "flavors": ["chocolate", "caramel", "strawberry"],
+      "description": "Soft-serve sundae with your choice of topping"
+    }
+  }
+}
