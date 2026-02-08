@@ -112,6 +112,7 @@ export default function CustomerKiosk() {
       setOrder(newOrder);
 
       // Start ElevenLabs conversation
+      // (The server syncs the latest menu prices to the agent before each session)
       const conversation = await Conversation.startSession({
         signedUrl,
 

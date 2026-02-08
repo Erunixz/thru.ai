@@ -7,6 +7,9 @@ client/dist/
 # Environment variables (contains API keys — NEVER commit)
 .env
 
+# SQLite database (generated from menu.json on first run)
+data/
+
 # OS files
 .DS_Store
 Thumbs.db
