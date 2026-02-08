@@ -132,8 +132,8 @@ This runs both the Express server and the Vite dev server concurrently with auto
 ## Usage
 
 ### Kiosk Interface
-1. Open http://localhost:3001 in a browser
-2. Click "Touch to Order" for manual ordering
+1. Open http://localhost:5173 in a browser
+2. Click "Start Order" for manual ordering
 3. Browse menu by category
 4. Add items to cart
 5. Complete your order
@@ -143,9 +143,6 @@ This runs both the Express server and the Vite dev server concurrently with auto
 2. Use the voice interface to speak your order
 3. The AI will process your order and provide confirmation
 4. Orders appear live on the kiosk display
-
-### Kitchen Display
-Access the kitchen display at http://localhost:3001/kitchen to view incoming orders in real-time.
 
 ## Menu Configuration
 
@@ -158,7 +155,6 @@ The menu structure supports:
 - Categories (Burgers, Combos, Sides, Drinks, etc.)
 - Items with prices and descriptions
 - Customization options
-- Images (place in `/client/public/images/`)
 
 ## Scripts
 
@@ -188,3 +184,4 @@ For issues or questions:
 ## License
 
 MIT
+
