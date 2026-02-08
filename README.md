@@ -8,12 +8,40 @@ thru.ai is a complete drive-through ordering solution featuring real-time voice 
 
 ## Features
 
-✅ **Voice AI Ordering** - Natural voice conversations powered by ElevenLabs Conversational AI
-✅ **Modern Kiosk Interface** - React-based touch-screen ordering interface
-✅ **Real-Time Order Management** - Live order tracking and updates
-✅ **Kitchen Display System** - Dedicated display for order fulfillment
-✅ **Camera-Based Person Detection** - Automatically detects when a customer approaches using TensorFlow.js and COCO-SSD, triggering the voice ordering system
-✅ **Dual Mode** - Manual touch ordering OR AI voice ordering
+### 🎤 Voice AI Ordering
+- Natural voice conversations powered by ElevenLabs Conversational AI
+- Real-time speech-to-speech with automatic order processing
+- Supports modifications, sizes, and special requests
+
+### 📹 Camera-Based Auto-Start
+- Automatically detects when a customer approaches using TensorFlow.js and COCO-SSD
+- Auto-starts voice conversation after 1 second
+- Auto-stops conversation 2 seconds after customer leaves
+- Performance-based FPS auto-tuning (1-5 FPS)
+- Graceful fallback to manual mode if camera unavailable
+
+### 🖥️ Modern Kiosk Interface
+- React-based touch-screen ordering interface
+- Real-time order updates and live totals
+- Displays menu items, prices, and modifiers
+- Optimized layout - all menu items visible on one page
+- Manual "Start Order" button as backup
+
+### 👨‍🍳 Kitchen Display System
+- Dedicated employee-facing order management at `/kitchen`
+- Four-column Kanban layout: New → Preparing → Ready → Completed
+- Real-time order updates via Socket.IO
+- Live timer showing order age with color coding (green/yellow/red)
+- One-click status advancement buttons
+- Order modifiers and customizations clearly displayed (70% opacity)
+- Delete button with 5-second undo window
+- Auto-hide completed orders after 1 hour
+- Syncs across all connected kitchen displays
+
+### ⚡ Real-Time Updates
+- Socket.IO for instant order synchronization
+- Live order tracking across kiosk and kitchen displays
+- Real-time status changes broadcast to all clients
 
 ## Architecture
 
@@ -106,13 +134,27 @@ This runs both the Express server and the Vite dev server concurrently with auto
 
 ```
 /thru.ai/
-├── server/              # Express.js backend
-│   ├── index.js         # Main server file
-│   ├── config.js        # Server configuration
-│   ├── services/        # Business logic services
-│   └── utils/           # Utility functions
-├── client/              # React frontend
-│   ├── src/             # React source code
+├── server/                        # Express.js backend
+│   ├── index.js                   # Main server + Socket.IO setup
+│   ├── config.js                  # Server configuration
+│   ├── services/
+│   │   ├── orderManager.js        # Order state management + kitchen status
+│   │   └── menuService.js         # ElevenLabs menu synchronization
+│   └── utils/                     # Utility functions
+├── client/                        # React frontend
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── CustomerKiosk.jsx  # Customer ordering interface
+│   │   │   └── KitchenDisplay.jsx # Kitchen order management system
+│   │   ├── components/
+│   │   │   ├── OrderPanel.jsx              # Order summary display
+│   │   │   ├── MenuDisplay.jsx             # Menu items grid
+│   │   │   ├── DetectionStatusIndicator.jsx # Camera detection status
+│   │   │   └── CameraPreview.jsx           # Optional camera preview
+│   │   ├── hooks/
+│   │   │   └── usePersonDetection.js       # TensorFlow.js person detection
+│   │   └── utils/
+│   │       └── personDetectionHelper.js    # Detection config & helpers
 │   ├── public/          # Static assets
 │   ├── dist/            # Built frontend (generated)
 │   ├── index.html       # Entry HTML
@@ -137,18 +179,90 @@ This runs both the Express server and the Vite dev server concurrently with auto
 
 ## Usage
 
-### Kiosk Interface
-1. Open http://localhost:5173 in a browser
-2. Click "Start Order" for manual ordering
-3. Browse menu by category
-4. Add items to cart
-5. Complete your order
+### Customer Kiosk Interface
+**URL:** http://localhost:3001 (or http://localhost:5173 in development)
 
-### Voice Ordering
-1. Ensure your ElevenLabs Conversational AI Agent is configured
-2. Use the voice interface to speak your order
-3. The AI will process your order and provide confirmation
-4. Orders appear live on the kiosk display
+**Auto-Detection Mode:**
+1. Grant camera permissions when prompted
+2. Approach the kiosk - voice conversation starts automatically after 1 second
+3. Speak your order naturally (e.g., "I'd like a cheeseburger with no pickles and a medium Coke")
+4. AI confirms items and modifications
+5. Complete your order
+6. Move away - conversation ends automatically after 2 seconds
+
+**Manual Mode:**
+1. Click "Start Order" button
+2. Speak or type your order
+3. View order summary on the right panel
+4. Click "End Conversation" when done
+
+**Camera Detection Settings:**
+- Toggle auto-detection on/off via status indicator
+- Optional camera preview (click "Show Camera Preview" button)
+- Detection runs at 3 FPS by default (auto-adjusts for performance)
+
+### Kitchen Display System
+**URL:** http://localhost:3001/kitchen
+
+**Order Management:**
+1. New orders appear in the "New Orders" column automatically
+2. Click "Start Preparing" to move order to "Preparing" column
+3. Click "Mark Ready" when food is ready
+4. Click "Complete" to finish the order
+5. Completed orders auto-hide after 1 hour
+
+**Order Cards Show:**
+- Order number (e.g., #001, #002)
+- All items with quantities and prices
+- **Modifiers** (no pickles, extra cheese, etc.) - displayed with reduced opacity
+- Size information (for drinks)
+- Order total
+- Live timer with color coding:
+  - 🟢 Green: < 3 minutes
+  - 🟡 Yellow: 3-5 minutes
+  - 🔴 Red: > 5 minutes
+
+**Delete Orders:**
+1. Click trash icon on any order card
+2. Order removed immediately with 5-second undo window
+3. Toast appears: "Order deleted - will be permanently deleted in 5 seconds"
+4. Click "Undo" to restore if accidental
+5. After 5 seconds, order permanently deleted
+
+**Multi-Display Support:**
+- Open multiple kitchen displays on different devices
+- All displays sync in real-time via Socket.IO
+- Status changes broadcast instantly
+
+## API Endpoints
+
+### Customer/Kiosk Endpoints
+- `GET /api/agent/signed-url` - Get ElevenLabs agent session URL
+- `POST /api/orders/update` - Update order from AI agent
+- `GET /api/orders` - Get all active orders
+- `GET /api/menu` - Get menu data
+
+### Kitchen Display Endpoints
+- `GET /api/kitchen/orders` - Get all kitchen orders
+- `POST /api/kitchen/status` - Update order kitchen status
+  - Body: `{ orderId, kitchenStatus: 'new'|'preparing'|'ready'|'completed' }`
+- `DELETE /api/kitchen/order/:orderId` - Delete an order
+- `POST /api/kitchen/restore` - Restore a deleted order
+  - Body: `{ order: {...} }`
+
+### Admin Endpoints
+- `POST /api/admin/refresh-menu` - Sync menu to ElevenLabs agent
+
+### Socket.IO Events
+**Emitted by server:**
+- `orders:init` - Initial orders on connect
+- `kitchen:init` - Initial kitchen orders
+- `order:new` - New order created
+- `order:update` - Order items/total updated
+- `order:complete` - Order marked complete
+- `kitchen:status` - Kitchen status changed
+- `kitchen:delete` - Order deleted
+- `kitchen:restore` - Order restored
 
 ## Menu Configuration
 
