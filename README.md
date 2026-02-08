@@ -16,9 +16,19 @@ thru.ai is a complete drive-through ordering solution featuring real-time voice 
 ### 📹 Camera-Based Auto-Start
 - Automatically detects when a customer approaches using TensorFlow.js and COCO-SSD
 - Auto-starts voice conversation after 1 second
-- Auto-stops conversation 2 seconds after customer leaves
+- Auto-stops conversation 3.5 seconds after customer leaves
 - Performance-based FPS auto-tuning (1-5 FPS)
 - Graceful fallback to manual mode if camera unavailable
+- Smooth return to welcome screen on conversation end (no page refresh needed)
+
+### 🔊 Minimal Sound Effects
+- Modern UI sound effects using Web Audio API (no audio files required)
+- Welcome chime when conversation starts
+- Confirmation beep when items are added to order
+- Success sound on order completion
+- Goodbye tone when conversation ends
+- Subtle and non-intrusive (30% volume)
+- Automatically initializes on first user interaction
 
 ### 🖥️ Modern Kiosk Interface
 - React-based touch-screen ordering interface
@@ -184,11 +194,11 @@ This runs both the Express server and the Vite dev server concurrently with auto
 
 **Auto-Detection Mode:**
 1. Grant camera permissions when prompted
-2. Approach the kiosk - voice conversation starts automatically after 1 second
+2. Approach the kiosk - voice conversation starts automatically after 1 second (welcome chime plays)
 3. Speak your order naturally (e.g., "I'd like a cheeseburger with no pickles and a medium Coke")
-4. AI confirms items and modifications
-5. Complete your order
-6. Move away - conversation ends automatically after 2 seconds
+4. AI confirms items and modifications (confirmation beep on each item)
+5. Complete your order (success sound plays)
+6. Move away - conversation ends automatically after 3.5 seconds (goodbye tone plays)
 
 **Manual Mode:**
 1. Click "Start Order" button

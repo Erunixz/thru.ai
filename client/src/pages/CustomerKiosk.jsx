@@ -26,6 +26,7 @@ import { usePersonDetection } from '../hooks/usePersonDetection';
 import DetectionStatusIndicator from '../components/DetectionStatusIndicator';
 import CameraPreview from '../components/CameraPreview';
 import { getDetectionConfig, saveDetectionConfig } from '../utils/personDetectionHelper';
+import { playSoundWelcome, playSoundItemAdded, playSoundOrderComplete, playSoundGoodbye } from '../utils/soundEffects';
 
 export default function CustomerKiosk() {
   // ---------------------------------------------------------------------------
@@ -231,6 +232,7 @@ export default function CustomerKiosk() {
         onConnect: () => {
           console.log('✅ Agent connected');
           setConnectionStatus('connected');
+          playSoundWelcome();
         },
 
         onDisconnect: () => {
@@ -306,9 +308,19 @@ export default function CustomerKiosk() {
             const status = parameters?.status || 'in_progress';
 
             console.log(`Final order state: ${items.length} items, $${total}, status: ${status}`);
+
+            // Update order state
+            const previousOrder = order;
             setOrder({ items, total, status });
 
-            if (status === 'complete') setIsComplete(true);
+            // Play appropriate sound effect
+            if (status === 'complete') {
+              setIsComplete(true);
+              playSoundOrderComplete();
+            } else if (items.length > 0 && (!previousOrder || items.length !== previousOrder.items.length)) {
+              // Item added (only if item count changed)
+              playSoundItemAdded();
+            }
 
             // Send to server for kitchen display
             try {
@@ -363,6 +375,9 @@ export default function CustomerKiosk() {
   // End / New Order
   // ---------------------------------------------------------------------------
   const handleEndOrder = useCallback(async () => {
+    // Play goodbye sound
+    playSoundGoodbye();
+
     if (conversationRef.current) {
       try { await conversationRef.current.endSession(); } catch {}
       conversationRef.current = null;
