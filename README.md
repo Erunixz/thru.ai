@@ -12,6 +12,7 @@ thru.ai is a complete drive-through ordering solution featuring real-time voice 
 ✅ **Modern Kiosk Interface** - React-based touch-screen ordering interface
 ✅ **Real-Time Order Management** - Live order tracking and updates
 ✅ **Kitchen Display System** - Dedicated display for order fulfillment
+✅ **Camera-Based Person Detection** - Automatically detects when a customer approaches using TensorFlow.js and COCO-SSD, triggering the voice ordering system
 ✅ **Dual Mode** - Manual touch ordering OR AI voice ordering
 
 ## Architecture
@@ -31,6 +32,11 @@ thru.ai is a complete drive-through ordering solution featuring real-time voice 
 - ElevenLabs Conversational AI Agent for voice interactions
 - Natural language order processing
 - Real-time speech-to-speech conversation
+
+**Computer Vision:**
+- TensorFlow.js with COCO-SSD model for real-time person detection
+- Automatic camera-based customer detection to trigger voice ordering
+- Adaptive FPS with performance-based auto-tuning
 
 ## Quick Start
 
@@ -172,6 +178,7 @@ The menu structure supports:
 - **Frontend:** React, Vite
 - **Styling:** Tailwind CSS
 - **AI:** ElevenLabs Conversational AI Agent
+- **Computer Vision:** TensorFlow.js, COCO-SSD
 - **Real-time:** WebSocket (Socket.io)
 
 ## Support
