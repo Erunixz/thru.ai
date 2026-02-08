@@ -1,0 +1,31 @@
+{
+  "name": "thru-ai",
+  "version": "1.0.0",
+  "description": "AI-powered drive-through ordering system using ElevenLabs Conversational AI Agent.",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently --names SERVER,CLIENT --prefix-colors blue,green \"nodemon server/index.js\" \"cd client && npm run dev\"",
+    "server": "node server/index.js",
+    "server:dev": "nodemon server/index.js",
+    "client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "NODE_ENV=production node server/index.js",
+    "install:all": "npm install && cd client && npm install",
+    "setup-agent": "node server/setup-agent.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
