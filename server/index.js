@@ -105,6 +105,13 @@ app.post('/api/orders/update', (req, res) => {
     const { orderId, items, total, status } = req.body;
     if (!orderId) return res.status(400).json({ error: 'Missing orderId' });
 
+    // Debug: Log if items count is abnormal
+    if (items && items.length > 10) {
+      console.warn(`⚠️  ABNORMAL ITEM COUNT: ${items.length} items received`);
+      console.warn('First 3 items:', JSON.stringify(items.slice(0, 3), null, 2));
+      console.warn('Last 3 items:', JSON.stringify(items.slice(-3), null, 2));
+    }
+
     const order = orderManager.updateOrder(orderId, { items, total, status });
     if (!order) return res.status(404).json({ error: 'Order not found' });
 

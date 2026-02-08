@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Conversation } from '@elevenlabs/client';
 import OrderPanel from '../components/OrderPanel';
-import ConversationPanel from '../components/Conversation';
+import MenuDisplay from '../components/MenuDisplay';
 
 export default function CustomerKiosk() {
   // ---------------------------------------------------------------------------
@@ -35,6 +35,7 @@ export default function CustomerKiosk() {
   const [error, setError] = useState(null);
   const [isComplete, setIsComplete] = useState(false);
   const [audioLevels, setAudioLevels] = useState([0, 0, 0, 0, 0]);
+  const [menu, setMenu] = useState(null);
 
   // Text input fallback
   const [textInput, setTextInput] = useState('');
@@ -84,6 +85,14 @@ export default function CustomerKiosk() {
 
   useEffect(() => {
     return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); };
+  }, []);
+
+  // Load menu on mount
+  useEffect(() => {
+    fetch('/api/menu')
+      .then(res => res.json())
+      .then(data => setMenu(data))
+      .catch(err => console.error('Failed to load menu:', err));
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -159,23 +168,41 @@ export default function CustomerKiosk() {
         // Client tools — agent calls these during conversation
         clientTools: {
           update_order: async (parameters) => {
-            console.log('🛒 Order update:', parameters);
+            console.log('🛒 Order update received from agent:', parameters);
 
             // Parse items if it's a JSON string (due to ElevenLabs tool limitations)
             let items = parameters?.items || [];
+            console.log('Items type:', typeof items, 'Value:', items);
+
             if (typeof items === 'string') {
               try {
                 items = JSON.parse(items);
+                console.log('Parsed items from JSON string:', items);
               } catch (e) {
                 console.error('Failed to parse items:', e);
                 items = [];
               }
             }
 
+            // Validate items is an array
+            if (!Array.isArray(items)) {
+              console.error('Items is not an array:', items);
+              items = [];
+            }
+
+            // Limit items to reasonable amount (safety check)
+            if (items.length > 20) {
+              console.warn(`⚠️  ABNORMAL: Agent sent ${items.length} items! Limiting to 20.`);
+              console.warn('First 3 items:', items.slice(0, 3));
+              console.warn('Last 3 items:', items.slice(-3));
+              items = items.slice(0, 20);
+            }
+
             const total = parameters?.total || 0;
             const status = parameters?.status || 'in_progress';
 
-            setOrder((prev) => ({ ...(prev || {}), items, total, status }));
+            console.log(`Final order state: ${items.length} items, $${total}, status: ${status}`);
+            setOrder({ items, total, status });
 
             if (status === 'complete') setIsComplete(true);
 
@@ -298,11 +325,11 @@ export default function CustomerKiosk() {
           </motion.div>
         </div>
       ) : (
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden gap-6 p-6">
           <div className="flex-1 flex flex-col min-w-0">
-            <ConversationPanel messages={messages} />
+            <MenuDisplay menu={menu} />
           </div>
-          <div className="w-80 lg:w-96 border-l border-slate-800/50 flex-shrink-0">
+          <div className="w-80 lg:w-96 flex-shrink-0">
             <OrderPanel order={order} />
           </div>
         </div>

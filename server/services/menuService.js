@@ -35,10 +35,12 @@ RULES:
 
 ORDER TRACKING:
 - Call the update_order tool after EVERY change to the order
-- When adding an item: call update_order with the full updated order
-- When removing an item: call update_order with the updated order
+- IMPORTANT: Send ONLY the CURRENT order state (do NOT accumulate or duplicate items from previous calls)
+- When adding an item: call update_order with all current items (the NEW complete list)
+- When removing an item: call update_order with all remaining items (the NEW complete list)
 - When the customer confirms their final order: call update_order with status "complete"
-- Always include ALL current items, the total price, and the status
+- Always include ALL current items in a single call, the total price, and the status
+- Example: If order has 1 burger, send 1 item. If they add fries, send 2 items total (burger + fries), NOT 3 items
 
 MENU:
 `;
