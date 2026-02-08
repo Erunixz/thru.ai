@@ -12,7 +12,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   UtensilsCrossed,
-  Wifi,
   WifiOff,
   Mic,
   Volume2,
@@ -22,7 +21,7 @@ import {
 } from 'lucide-react';
 import { Conversation } from '@elevenlabs/client';
 import OrderPanel from '../components/OrderPanel';
-import ConversationPanel from '../components/Conversation';
+import MenuDisplay from '../components/MenuDisplay';
 
 export default function CustomerKiosk() {
   // ---------------------------------------------------------------------------
@@ -35,6 +34,7 @@ export default function CustomerKiosk() {
   const [error, setError] = useState(null);
   const [isComplete, setIsComplete] = useState(false);
   const [audioLevels, setAudioLevels] = useState([0, 0, 0, 0, 0]);
+  const [menu, setMenu] = useState(null);
 
   // Text input fallback
   const [textInput, setTextInput] = useState('');
@@ -84,6 +84,14 @@ export default function CustomerKiosk() {
 
   useEffect(() => {
     return () => { if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current); };
+  }, []);
+
+  // Load menu on mount
+  useEffect(() => {
+    fetch('/api/menu')
+      .then(res => res.json())
+      .then(data => setMenu(data))
+      .catch(err => console.error('Failed to load menu:', err));
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -160,13 +168,41 @@ export default function CustomerKiosk() {
         // Client tools — agent calls these during conversation
         clientTools: {
           update_order: async (parameters) => {
-            console.log('🛒 Order update:', parameters);
+            console.log('🛒 Order update received from agent:', parameters);
 
-            const items = parameters?.items || [];
+            // Parse items if it's a JSON string (due to ElevenLabs tool limitations)
+            let items = parameters?.items || [];
+            console.log('Items type:', typeof items, 'Value:', items);
+
+            if (typeof items === 'string') {
+              try {
+                items = JSON.parse(items);
+                console.log('Parsed items from JSON string:', items);
+              } catch (e) {
+                console.error('Failed to parse items:', e);
+                items = [];
+              }
+            }
+
+            // Validate items is an array
+            if (!Array.isArray(items)) {
+              console.error('Items is not an array:', items);
+              items = [];
+            }
+
+            // Limit items to reasonable amount (safety check)
+            if (items.length > 20) {
+              console.warn(`⚠️  ABNORMAL: Agent sent ${items.length} items! Limiting to 20.`);
+              console.warn('First 3 items:', items.slice(0, 3));
+              console.warn('Last 3 items:', items.slice(-3));
+              items = items.slice(0, 20);
+            }
+
             const total = parameters?.total || 0;
             const status = parameters?.status || 'in_progress';
 
-            setOrder((prev) => ({ ...(prev || {}), items, total, status }));
+            console.log(`Final order state: ${items.length} items, $${total}, status: ${status}`);
+            setOrder({ items, total, status });
 
             if (status === 'complete') setIsComplete(true);
 
@@ -242,73 +278,110 @@ export default function CustomerKiosk() {
   // Render
   // ---------------------------------------------------------------------------
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       {/* HEADER */}
-      <header className="flex items-center justify-between px-8 py-4 border-b border-slate-800/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center">
-            <UtensilsCrossed className="w-6 h-6 text-white" />
+      <header className="bg-white border-b border-gray-200 px-8 py-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <motion.div
+              className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center shadow-md"
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 400 }}
+            >
+              <UtensilsCrossed className="w-7 h-7 text-white" />
+            </motion.div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Burger Express</h1>
+              <p className="text-xs text-gray-500 font-medium">AI-Powered Drive-Thru</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Burger Express</h1>
-            <p className="text-xs text-slate-500">AI Drive-Through</p>
+          <div className="flex items-center gap-3">
+            {isActive ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-50 border border-green-200"
+              >
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-xs font-semibold text-green-700">Live</span>
+              </motion.div>
+            ) : isConnecting ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-yellow-50 border border-yellow-200">
+                <Loader2 className="w-3 h-3 text-yellow-600 animate-spin" />
+                <span className="text-xs font-semibold text-yellow-700">Connecting...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 border border-gray-200">
+                <WifiOff className="w-3 h-3 text-gray-500" />
+                <span className="text-xs font-semibold text-gray-600">Ready</span>
+              </div>
+            )}
           </div>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          {isActive ? (
-            <span className="flex items-center gap-1.5 text-green-400"><Wifi className="w-4 h-4" /> Connected</span>
-          ) : isConnecting ? (
-            <span className="flex items-center gap-1.5 text-yellow-400"><Loader2 className="w-4 h-4 animate-spin" /> Connecting...</span>
-          ) : (
-            <span className="flex items-center gap-1.5 text-slate-500"><WifiOff className="w-4 h-4" /> Ready</span>
-          )}
         </div>
       </header>
 
       {/* MAIN */}
       {connectionStatus === 'idle' ? (
         <div className="flex-1 flex items-center justify-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="text-center"
+          >
             <motion.div
-              className="w-24 h-24 bg-brand-500 rounded-3xl flex items-center justify-center mx-auto mb-8"
+              className="w-28 h-28 bg-gray-900 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl"
               animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             >
               <UtensilsCrossed className="w-14 h-14 text-white" />
             </motion.div>
-            <h2 className="text-4xl font-bold text-white mb-3">Welcome to Burger Express</h2>
-            <p className="text-xl text-slate-400 mb-10">Tap below to start your order</p>
+            <h2 className="text-5xl font-bold text-gray-900 mb-4">
+              Welcome to Burger Express
+            </h2>
+            <p className="text-xl text-gray-600 mb-12 font-medium">Start your order with our AI assistant</p>
             <motion.button
               onClick={handleStartOrder}
-              className="bg-brand-500 hover:bg-brand-600 text-white text-xl font-semibold px-12 py-5 rounded-2xl shadow-lg shadow-brand-500/25 transition-colors"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
+              className="bg-gray-900 hover:bg-gray-800 text-white text-xl font-bold px-16 py-6 rounded-2xl shadow-lg transition-colors"
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400 }}
             >
               Start Order
             </motion.button>
           </motion.div>
         </div>
       ) : (
-        <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 flex flex-col min-w-0">
-            <ConversationPanel messages={messages} />
-          </div>
-          <div className="w-80 lg:w-96 border-l border-slate-800/50 flex-shrink-0">
+        <div className="flex-1 flex overflow-hidden gap-6 p-6">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex-1 flex flex-col min-w-0"
+          >
+            <MenuDisplay menu={menu} />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="w-80 lg:w-96 flex-shrink-0"
+          >
             <OrderPanel order={order} />
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* FOOTER */}
       {connectionStatus !== 'idle' && (
-        <footer className="border-t border-slate-800/50 px-8 py-4">
+        <footer className="bg-white border-t border-gray-200 px-8 py-6 shadow-sm">
           <AnimatePresence>
             {error && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-lg px-4 py-2 mb-3 text-sm text-center"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-6 py-3 mb-4 text-sm text-center font-medium"
               >
                 {error}
               </motion.div>
@@ -316,26 +389,43 @@ export default function CustomerKiosk() {
           </AnimatePresence>
 
           {isComplete ? (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center py-2">
-              <p className="text-2xl font-bold text-green-400 mb-2">Order Complete!</p>
-              <p className="text-slate-400 mb-4">Please pull forward to the window. Thank you!</p>
-              <button onClick={handleEndOrder} className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2.5 rounded-lg transition-colors text-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.4 }}
+              className="text-center py-6 px-6 rounded-2xl bg-green-50 border border-green-200"
+            >
+              <div className="text-4xl mb-3">✓</div>
+              <p className="text-3xl font-bold text-green-700 mb-2">Order Complete!</p>
+              <p className="text-gray-600 mb-6 text-lg">Please pull forward to the window. Thank you!</p>
+              <motion.button
+                onClick={handleEndOrder}
+                className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-3 rounded-xl transition-colors font-semibold"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 New Order
-              </button>
+              </motion.button>
             </motion.div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-5">
               {/* Voice status + visualization */}
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex items-center gap-6">
+              <div className="flex flex-col items-center gap-4">
+                <div className="flex items-center gap-8">
                   {/* Audio bars left */}
-                  <div className="flex items-end gap-1 h-16 w-16 justify-center">
+                  <div className="flex items-end gap-1.5 h-20 w-20 justify-center">
                     {audioLevels.slice(0, 3).map((level, i) => (
                       <motion.div
                         key={`l${i}`}
-                        className={`w-1.5 rounded-full ${isSpeaking ? 'bg-brand-400' : isListening ? 'bg-green-400' : 'bg-slate-600'}`}
-                        animate={{ height: isActive ? Math.max(6, level * 56) : 6 }}
-                        transition={{ duration: 0.08 }}
+                        className={`w-2 rounded-full ${
+                          isSpeaking
+                            ? 'bg-gray-700'
+                            : isListening
+                            ? 'bg-green-500'
+                            : 'bg-gray-300'
+                        }`}
+                        animate={{ height: isActive ? Math.max(8, level * 64) : 8 }}
+                        transition={{ duration: 0.1, ease: "easeOut" }}
                       />
                     ))}
                   </div>
@@ -345,65 +435,112 @@ export default function CustomerKiosk() {
                     {isListening && (
                       <motion.div
                         className="absolute inset-0 rounded-full bg-green-500"
-                        animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0, 0.3] }}
-                        transition={{ duration: 2, repeat: Infinity }}
+                        animate={{ scale: [1, 1.6, 1], opacity: [0.3, 0, 0.3] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                       />
                     )}
-                    <div className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center text-white shadow-lg ${
-                      isConnecting ? 'bg-slate-600' : isSpeaking ? 'bg-brand-500' : isListening ? 'bg-green-500' : 'bg-slate-700'
-                    }`}>
-                      {isConnecting ? <Loader2 className="w-9 h-9 animate-spin" /> : isSpeaking ? <Volume2 className="w-9 h-9" /> : <Mic className="w-9 h-9" />}
-                    </div>
+                    <motion.div
+                      className={`relative z-10 w-24 h-24 rounded-full flex items-center justify-center text-white shadow-lg ${
+                        isConnecting
+                          ? 'bg-gray-500'
+                          : isSpeaking
+                          ? 'bg-gray-900'
+                          : isListening
+                          ? 'bg-green-500'
+                          : 'bg-gray-400'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 400 }}
+                    >
+                      {isConnecting ? (
+                        <Loader2 className="w-10 h-10 animate-spin" />
+                      ) : isSpeaking ? (
+                        <motion.div
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 0.8, repeat: Infinity }}
+                        >
+                          <Volume2 className="w-10 h-10" />
+                        </motion.div>
+                      ) : (
+                        <Mic className="w-10 h-10" />
+                      )}
+                    </motion.div>
                   </div>
 
                   {/* Audio bars right */}
-                  <div className="flex items-end gap-1 h-16 w-16 justify-center">
+                  <div className="flex items-end gap-1.5 h-20 w-20 justify-center">
                     {audioLevels.slice(2, 5).map((level, i) => (
                       <motion.div
                         key={`r${i}`}
-                        className={`w-1.5 rounded-full ${isSpeaking ? 'bg-brand-400' : isListening ? 'bg-green-400' : 'bg-slate-600'}`}
-                        animate={{ height: isActive ? Math.max(6, level * 56) : 6 }}
-                        transition={{ duration: 0.08 }}
+                        className={`w-2 rounded-full ${
+                          isSpeaking
+                            ? 'bg-gray-700'
+                            : isListening
+                            ? 'bg-green-500'
+                            : 'bg-gray-300'
+                        }`}
+                        animate={{ height: isActive ? Math.max(8, level * 64) : 8 }}
+                        transition={{ duration: 0.1, ease: "easeOut" }}
                       />
                     ))}
                   </div>
                 </div>
 
-                <p className="text-base text-slate-400 text-center">
-                  {isConnecting ? 'Connecting to Burger Express...' : isSpeaking ? 'AI is speaking...' : isListening ? 'Listening — speak now' : 'Ready'}
+                <p className="text-lg font-semibold text-gray-700">
+                  {isConnecting ? 'Connecting to AI...' : isSpeaking ? '🔊 AI Speaking' : isListening ? '🎤 Listening' : 'Ready'}
                 </p>
               </div>
 
               {/* Text fallback */}
               <div className="text-center">
                 {!showTextInput ? (
-                  <button onClick={() => setShowTextInput(true)} className="text-slate-500 hover:text-slate-400 text-xs transition-colors">
+                  <motion.button
+                    onClick={() => setShowTextInput(true)}
+                    className="text-gray-500 hover:text-gray-700 text-sm transition-colors font-medium"
+                    whileHover={{ scale: 1.05 }}
+                  >
                     or type your order instead
-                  </button>
+                  </motion.button>
                 ) : (
-                  <form onSubmit={handleTextSubmit} className="flex gap-2 max-w-lg mx-auto">
+                  <motion.form
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onSubmit={handleTextSubmit}
+                    className="flex gap-3 max-w-lg mx-auto"
+                  >
                     <input
                       type="text"
                       value={textInput}
                       onChange={(e) => { setTextInput(e.target.value); conversationRef.current?.sendUserActivity?.(); }}
                       placeholder="Type your order here..."
-                      className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-500"
+                      className="flex-1 bg-white border border-gray-300 rounded-xl px-5 py-3 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-900/10 transition-all"
                       disabled={!isActive}
                       autoFocus
                     />
-                    <button type="submit" disabled={!textInput.trim() || !isActive} className="bg-brand-500 hover:bg-brand-600 disabled:bg-slate-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg transition-colors">
-                      <Send className="w-4 h-4" />
-                    </button>
-                  </form>
+                    <motion.button
+                      type="submit"
+                      disabled={!textInput.trim() || !isActive}
+                      className="bg-gray-900 hover:bg-gray-800 disabled:bg-gray-300 disabled:opacity-50 text-white px-5 py-3 rounded-xl transition-colors"
+                      whileHover={{ scale: textInput.trim() && isActive ? 1.05 : 1 }}
+                      whileTap={{ scale: textInput.trim() && isActive ? 0.95 : 1 }}
+                    >
+                      <Send className="w-5 h-5" />
+                    </motion.button>
+                  </motion.form>
                 )}
               </div>
 
               {/* End order */}
               {(isActive || isConnecting) && (
-                <div className="text-center">
-                  <button onClick={handleEndOrder} className="flex items-center gap-1.5 mx-auto text-red-400/60 hover:text-red-400 text-xs transition-colors">
-                    <PhoneOff className="w-3 h-3" /> End Conversation
-                  </button>
+                <div className="text-center pt-2">
+                  <motion.button
+                    onClick={handleEndOrder}
+                    className="flex items-center gap-2 mx-auto text-red-600 hover:text-red-700 text-sm transition-colors font-medium"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <PhoneOff className="w-4 h-4" /> End Conversation
+                  </motion.button>
                 </div>
               )}
             </div>

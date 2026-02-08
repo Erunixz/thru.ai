@@ -5,18 +5,13 @@
 // PURPOSE:
 //   Manages the lifecycle of drive-thru orders:
 //     - Creates order records when a session starts
-//     - Updates order state when Claude extracts new items
-//     - Tracks order status (in_progress → preparing → ready → completed)
-//     - Provides order data for the kitchen display
+//     - Updates order state when AI extracts new items
+//     - Tracks order status (in_progress → complete)
 //     - Assigns incrementing order numbers (e.g., #001, #002, ...)
 //
 // HOW IT FITS:
-//   main.py (Python version) had a simple dict. This is the Node.js equivalent
-//   with proper order numbering, status tracking, and kitchen display support.
-//
-//   Claude AI → updates order items/total → orderManager stores it
-//   Kitchen Display → reads orders → staff marks as preparing/ready
-//   Socket.IO → broadcasts changes to all connected kitchen displays
+//   ElevenLabs AI → updates order items/total → orderManager stores it
+//   Socket.IO → broadcasts changes to connected clients for tracking
 //
 // =============================================================================
 
@@ -43,12 +38,11 @@ function createOrder(sessionId) {
   orderCounter += 1;
 
   const order = {
-    id: sessionId,                                              // Links to the Claude session
+    id: sessionId,                                              // Links to the conversation session
     orderNumber: orderCounter,                                  // Human-friendly "#001"
-    items: [],                                                  // Order items from Claude
+    items: [],                                                  // Order items from AI
     total: 0,                                                   // Running total
-    status: 'in_progress',                                      // Order lifecycle status
-    kitchenStatus: 'waiting',                                   // Kitchen workflow status
+    status: 'in_progress',                                      // Order lifecycle status (in_progress → complete)
     createdAt: new Date().toISOString(),                        // When the order session started
     updatedAt: new Date().toISOString(),                        // Last update timestamp
     completedAt: null,                                          // When the customer confirmed
@@ -59,58 +53,29 @@ function createOrder(sessionId) {
 }
 
 /**
- * Update an order with new data from Claude's response.
+ * Update an order with new data from the AI's response.
  *
- * Called after every Claude AI turn. Claude returns the FULL order state
+ * Called after every AI turn. The AI returns the FULL order state
  * (not just the diff), so we replace items/total/status entirely.
  *
  * @param {string} sessionId - The session ID
- * @param {Object} orderData - The order data from Claude: { items, total, status }
+ * @param {Object} orderData - The order data from AI: { items, total, status }
  * @returns {Object|null} The updated order record, or null if not found
  */
 function updateOrder(sessionId, orderData) {
   const order = orders.get(sessionId);
   if (!order) return null;
 
-  // Claude sends the full order state each turn — replace items and total
+  // AI sends the full order state each turn — replace items and total
   order.items = orderData.items || [];
   order.total = orderData.total || 0;
   order.status = orderData.status || 'in_progress';
   order.updatedAt = new Date().toISOString();
 
-  // If Claude marked the order as complete, record the completion time
+  // If AI marked the order as complete, record the completion time
   if (orderData.status === 'complete' && !order.completedAt) {
     order.completedAt = new Date().toISOString();
   }
-
-  orders.set(sessionId, order);
-  return order;
-}
-
-/**
- * Update the kitchen status of an order.
- *
- * Called by kitchen staff via the kitchen display:
- *   - "waiting"   → Order received, not yet started
- *   - "preparing" → Kitchen is making the order
- *   - "ready"     → Order is ready for pickup
- *   - "completed" → Order has been handed to customer
- *
- * @param {string} sessionId - The session/order ID
- * @param {string} kitchenStatus - The new kitchen status
- * @returns {Object|null} The updated order, or null if not found
- */
-function updateKitchenStatus(sessionId, kitchenStatus) {
-  const order = orders.get(sessionId);
-  if (!order) return null;
-
-  const validStatuses = ['waiting', 'preparing', 'ready', 'completed'];
-  if (!validStatuses.includes(kitchenStatus)) {
-    throw new Error(`Invalid kitchen status: ${kitchenStatus}. Must be one of: ${validStatuses.join(', ')}`);
-  }
-
-  order.kitchenStatus = kitchenStatus;
-  order.updatedAt = new Date().toISOString();
 
   orders.set(sessionId, order);
   return order;
@@ -127,9 +92,9 @@ function getOrder(sessionId) {
 }
 
 /**
- * Get all active orders (for the kitchen display).
+ * Get all active orders (in_progress status).
  *
- * Returns orders that are NOT "completed" in kitchen status,
+ * Returns orders that are still in_progress (not yet completed),
  * sorted by creation time (oldest first — FIFO).
  *
  * @returns {Array} Array of order records
@@ -137,8 +102,8 @@ function getOrder(sessionId) {
 function getActiveOrders() {
   const active = [];
   for (const order of orders.values()) {
-    // Show orders that are still in the kitchen pipeline
-    if (order.kitchenStatus !== 'completed') {
+    // Show orders that are still in progress
+    if (order.status === 'in_progress') {
       active.push(order);
     }
   }
@@ -168,7 +133,6 @@ function deleteOrder(sessionId) {
 module.exports = {
   createOrder,
   updateOrder,
-  updateKitchenStatus,
   getOrder,
   getActiveOrders,
   getAllOrders,

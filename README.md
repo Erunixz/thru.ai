@@ -1,92 +1,190 @@
-# Drive-Thru AI Demo 🍔🎤
+# thru.ai 🍔🎤
 
-Complete working demo of AI-powered drive-thru order system with McDonald's-style kiosk interface.
+AI-powered drive-through ordering system using ElevenLabs Conversational AI, Node.js, and React.
+
+## Overview
+
+thru.ai is a complete drive-through ordering solution featuring real-time voice AI ordering, a modern touch-screen kiosk interface, and a kitchen display system. Built with ElevenLabs' Conversational AI Agent for natural voice interactions and a React-based frontend for a beautiful ordering experience.
 
 ## Features
 
-✅ **Voice AI Ordering** - Customers order via voice through drive-thru
-✅ **Touch-Screen Kiosk** - Beautiful McDonald's-style ordering interface
-✅ **Real-Time Sync** - Voice orders appear live on kiosk display
+✅ **Voice AI Ordering** - Natural voice conversations powered by ElevenLabs Conversational AI
+✅ **Modern Kiosk Interface** - React-based touch-screen ordering interface
+✅ **Real-Time Order Management** - Live order tracking and updates
+✅ **Kitchen Display System** - Dedicated display for order fulfillment
 ✅ **Dual Mode** - Manual touch ordering OR AI voice ordering
 
-## Stack
-- **Whisper** (GPU) - Speech to Text
-- **Claude Haiku** - Order Processing & Conversation
-- **ElevenLabs** - Text to Speech
-- **Flask** - Backend API Server
-- **HTML/CSS/JS** - McDonald's-Style Kiosk Frontend
+## Architecture
 
-## Setup
+**Backend:**
+- Node.js + Express.js server
+- ElevenLabs Conversational AI Agent integration
+- WebSocket support for real-time updates
+- Order management and tracking
+
+**Frontend:**
+- React + Vite
+- Tailwind CSS for styling
+- Responsive kiosk and kitchen displays
+
+**AI:**
+- ElevenLabs Conversational AI Agent for voice interactions
+- Natural language order processing
+- Real-time speech-to-speech conversation
+
+## Quick Start
 
 ### 1. Install Dependencies
+
 ```bash
-pip install -r requirements.txt
+# Install root dependencies
+npm install
+
+# Install client dependencies
+cd client
+npm install
+cd ..
 ```
 
-### 2. Configure API Keys
-Edit `config.py` and add your API keys:
-- Get Claude key: https://console.anthropic.com/
-- Get ElevenLabs key: https://elevenlabs.io/
+### 2. Configure Environment Variables
 
-### 3. Install CUDA (for GPU Whisper)
-Make sure you have NVIDIA drivers and CUDA installed.
+Copy the example environment file and add your ElevenLabs credentials:
 
-## Running
-
-### Terminal 1: Start Frontend Server
 ```bash
-python frontend_server.py
+cp .env.example .env
 ```
 
-Server runs on http://localhost:3001
+Edit `.env` and set:
+- `ELEVENLABS_API_KEY` - Your ElevenLabs API key
+- `ELEVENLABS_AGENT_ID` - Your Conversational AI Agent ID
+- `ELEVENLABS_VOICE_ID` - Voice ID for TTS (optional, defaults to Rachel)
+- `PORT` - Server port (default: 3001)
+- `NODE_ENV` - Environment mode (development/production)
 
-### Terminal 2: Open Kiosk Interface
-Open browser to: **http://localhost:3001**
+**Get your ElevenLabs credentials:**
+- Sign up at https://elevenlabs.io/
+- Create a Conversational AI Agent
+- Copy your API key and Agent ID
 
-You'll see a beautiful McDonald's-style ordering interface!
+### 3. Build the Client
 
-### Terminal 3: Start AI Voice System (Optional)
 ```bash
-python main.py
+npm run build
 ```
+
+This builds the React frontend and places the production files in `/client/dist/`.
+
+### 4. Start the Server
+
+```bash
+npm start
+```
+
+The server will start on http://localhost:3001 (or your configured PORT).
+
+## Development
+
+For development with hot reload:
+
+```bash
+npm run dev
+```
+
+This runs both the Express server and the Vite dev server concurrently with automatic reloading.
+
+**Development URLs:**
+- Frontend (Vite dev server): http://localhost:5173
+- Backend API: http://localhost:3001
+
+## Project Structure
+
+```
+/thru.ai/
+├── server/              # Express.js backend
+│   ├── index.js         # Main server file
+│   ├── config.js        # Server configuration
+│   ├── services/        # Business logic services
+│   └── utils/           # Utility functions
+├── client/              # React frontend
+│   ├── src/             # React source code
+│   ├── public/          # Static assets
+│   ├── dist/            # Built frontend (generated)
+│   ├── index.html       # Entry HTML
+│   ├── vite.config.js   # Vite configuration
+│   └── package.json     # Client dependencies
+├── menu.json            # Menu data
+├── .env                 # Environment variables (not in git)
+├── .env.example         # Environment variables template
+├── package.json         # Root project configuration
+└── README.md            # This file
+```
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `ELEVENLABS_API_KEY` | Your ElevenLabs API key | Yes |
+| `ELEVENLABS_AGENT_ID` | Your Conversational AI Agent ID | Yes |
+| `ELEVENLABS_VOICE_ID` | Voice ID for TTS responses | No |
+| `PORT` | Server port number | No (default: 3001) |
+| `NODE_ENV` | Environment mode | No (default: development) |
 
 ## Usage
 
-### Option 1: Manual Touch Ordering (No Voice)
-1. Open http://localhost:3001 in browser
-2. Click "Touch to Order"
-3. Browse menu by category (Burgers, Combos, Sides, Drinks)
+### Kiosk Interface
+1. Open http://localhost:3001 in a browser
+2. Click "Touch to Order" for manual ordering
+3. Browse menu by category
 4. Add items to cart
-5. Adjust quantities in order summary
-6. Click "Complete Order"
+5. Complete your order
 
-### Option 2: AI Voice Ordering
-1. Start both `frontend_server.py` AND `main.py`
-2. Open http://localhost:3001 in browser
-3. Speak your order at the drive-thru microphone
-4. Watch orders appear LIVE on the kiosk screen!
-5. AI confirms items and calculates totals
-6. Order auto-completes when customer is done
+### Voice Ordering
+1. Ensure your ElevenLabs Conversational AI Agent is configured
+2. Use the voice interface to speak your order
+3. The AI will process your order and provide confirmation
+4. Orders appear live on the kiosk display
 
-### Option 3: Hybrid Mode
-- Use manual touch ordering normally
-- Voice orders from `main.py` appear automatically on screen
-- Perfect for demos showing both modes!
+### Kitchen Display
+Access the kitchen display at http://localhost:3001/kitchen to view incoming orders in real-time.
 
-## Testing Without Microphone
+## Menu Configuration
 
-Modify `main.py` to use text input instead:
-```python
-# In run() method, replace:
-# audio = self.record_audio()
-# customer_text = self.transcribe_audio(audio)
+Edit `menu.json` to customize your menu:
+- Add/remove categories
+- Update items, prices, and descriptions
+- Configure item options and customizations
 
-# With:
-customer_text = input("Customer: ")
-```
+The menu structure supports:
+- Categories (Burgers, Combos, Sides, Drinks, etc.)
+- Items with prices and descriptions
+- Customization options
+- Images (place in `/client/public/images/`)
 
-## Notes
+## Scripts
 
-- Adjust `RECORDING_DURATION` in config.py for longer/shorter listening
-- Change `WHISPER_MODEL` to "small" or "medium" for better accuracy
-- Audio playback command in `speak()` may need adjustment for your OS
+| Command | Description |
+|---------|-------------|
+| `npm start` | Start production server |
+| `npm run dev` | Start development mode with hot reload |
+| `npm run build` | Build React frontend for production |
+| `npm run preview` | Preview production build locally |
+
+## Tech Stack
+
+- **Runtime:** Node.js
+- **Backend:** Express.js
+- **Frontend:** React, Vite
+- **Styling:** Tailwind CSS
+- **AI:** ElevenLabs Conversational AI Agent
+- **Real-time:** WebSocket (Socket.io)
+
+## Support
+
+For issues or questions:
+- Check the ElevenLabs documentation: https://elevenlabs.io/docs
+- Review server logs for error messages
+- Ensure all environment variables are set correctly
+
+## License
+
+MIT

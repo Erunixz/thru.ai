@@ -24,68 +24,12 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const config = require('./config');
 
-// Services
+// Services (only order management — agent handles conversation)
 const orderManager = require('./services/orderManager');
-const menuDB = require('./db');
-const { buildSystemPrompt } = require('./prompt');
+const menuService = require('./services/menuService');
 
-// =============================================================================
-// AGENT PROMPT SYNC — keeps the ElevenLabs agent's prompt in sync with the DB
-// =============================================================================
-// We cache a hash of the last-synced prompt so we only call the API when the
-// menu actually changes (not on every session start).
-
-let lastSyncedPromptHash = null;
-
-function simpleHash(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash;
-}
-
-async function syncAgentPromptIfNeeded() {
-  if (!config.elevenLabsApiKey || !config.elevenLabsAgentId) return;
-
-  const prompt = buildSystemPrompt();
-  const hash = simpleHash(prompt);
-
-  if (hash === lastSyncedPromptHash) return; // menu hasn't changed
-
-  try {
-    const res = await fetch(
-      `https://api.elevenlabs.io/v1/convai/agents/${config.elevenLabsAgentId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'xi-api-key': config.elevenLabsApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          conversation_config: {
-            agent: {
-              prompt: {
-                prompt: prompt,
-              },
-            },
-          },
-        }),
-      }
-    );
-
-    if (res.ok) {
-      lastSyncedPromptHash = hash;
-      console.log('🔄 Agent prompt synced with latest menu from DB');
-    } else {
-      const errText = await res.text();
-      console.warn('⚠️  Failed to sync agent prompt:', res.status, errText);
-    }
-  } catch (err) {
-    console.warn('⚠️  Failed to sync agent prompt:', err.message);
-  }
-}
+// Menu data
+const menu = require('../menu.json'); // Root menu.json (comprehensive menu)
 
 // =============================================================================
 // EXPRESS + SOCKET.IO SETUP
@@ -118,9 +62,6 @@ if (config.nodeEnv === 'production') {
 // ---------------------------------------------------------------------------
 app.get('/api/agent/signed-url', async (req, res) => {
   try {
-    // Sync latest menu prices to the agent before starting a session
-    await syncAgentPromptIfNeeded();
-
     if (!config.elevenLabsAgentId) {
       return res.status(500).json({
         error: 'Agent not configured. Set ELEVENLABS_AGENT_ID in .env',
@@ -164,6 +105,13 @@ app.post('/api/orders/update', (req, res) => {
     const { orderId, items, total, status } = req.body;
     if (!orderId) return res.status(400).json({ error: 'Missing orderId' });
 
+    // Debug: Log if items count is abnormal
+    if (items && items.length > 10) {
+      console.warn(`⚠️  ABNORMAL ITEM COUNT: ${items.length} items received`);
+      console.warn('First 3 items:', JSON.stringify(items.slice(0, 3), null, 2));
+      console.warn('Last 3 items:', JSON.stringify(items.slice(-3), null, 2));
+    }
+
     const order = orderManager.updateOrder(orderId, { items, total, status });
     if (!order) return res.status(404).json({ error: 'Order not found' });
 
@@ -183,94 +131,23 @@ app.post('/api/orders/update', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// GET /api/orders — All active orders (kitchen display)
+// GET /api/orders — All active orders (for tracking/debugging)
 // ---------------------------------------------------------------------------
 app.get('/api/orders', (req, res) => {
   res.json(orderManager.getActiveOrders());
 });
 
+app.get('/api/menu', (req, res) => res.json(menu));
+
 // ---------------------------------------------------------------------------
-// POST /api/orders/:id/status — Kitchen staff updates order status
+// POST /api/admin/refresh-menu — Refresh agent with current menu
 // ---------------------------------------------------------------------------
-app.post('/api/orders/:id/status', (req, res) => {
+app.post('/api/admin/refresh-menu', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { kitchenStatus } = req.body;
-    if (!kitchenStatus) return res.status(400).json({ error: 'Missing kitchenStatus' });
-
-    const order = orderManager.updateKitchenStatus(id, kitchenStatus);
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-
-    io.emit('order:update', order);
-    console.log(`📦 Order #${order.orderNumber} → ${kitchenStatus}`);
-    res.json(order);
+    await menuService.refreshAgentMenu();
+    res.json({ success: true, message: 'Agent menu refreshed successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// =============================================================================
-// MENU CRUD — prices stored in SQLite, editable via these endpoints
-// =============================================================================
-
-// GET /api/menu — Full menu grouped by category (same format agent uses)
-app.get('/api/menu', (req, res) => {
-  res.json(menuDB.getMenuGrouped());
-});
-
-// GET /api/menu/items — Flat list of all items (for admin editing)
-app.get('/api/menu/items', (req, res) => {
-  res.json(menuDB.getAllItems());
-});
-
-// GET /api/menu/items/:id — Single item
-app.get('/api/menu/items/:id', (req, res) => {
-  const item = menuDB.getItemById(req.params.id);
-  if (!item) return res.status(404).json({ error: 'Item not found' });
-  res.json(item);
-});
-
-// POST /api/menu/items — Create a new menu item
-app.post('/api/menu/items', async (req, res) => {
-  try {
-    const { category, name, price } = req.body;
-    if (!category || !name || price == null) {
-      return res.status(400).json({ error: 'category, name, and price are required' });
-    }
-    const item = menuDB.createItem(req.body);
-    console.log(`🍔 Menu: Added "${item.name}" ($${item.price}) in ${item.category}`);
-    await syncAgentPromptIfNeeded(); // push updated menu to agent
-    res.status(201).json(item);
-  } catch (error) {
-    if (error.message?.includes('UNIQUE')) {
-      return res.status(409).json({ error: `Item "${req.body.name}" already exists` });
-    }
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// PUT /api/menu/items/:id — Update an item (partial updates OK)
-app.put('/api/menu/items/:id', async (req, res) => {
-  try {
-    const item = menuDB.updateItem(req.params.id, req.body);
-    if (!item) return res.status(404).json({ error: 'Item not found' });
-    console.log(`✏️  Menu: Updated "${item.name}" → $${item.price}`);
-    await syncAgentPromptIfNeeded(); // push updated menu to agent
-    res.json(item);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// DELETE /api/menu/items/:id — Remove an item
-app.delete('/api/menu/items/:id', async (req, res) => {
-  try {
-    const item = menuDB.deleteItem(req.params.id);
-    if (!item) return res.status(404).json({ error: 'Item not found' });
-    console.log(`🗑️  Menu: Deleted "${item.name}"`);
-    await syncAgentPromptIfNeeded(); // push updated menu to agent
-    res.json({ deleted: true, item });
-  } catch (error) {
+    console.error('❌ Failed to refresh menu:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -282,21 +159,12 @@ if (config.nodeEnv === 'production') {
 }
 
 // =============================================================================
-// SOCKET.IO — Real-time kitchen display
+// SOCKET.IO — Real-time order updates
 // =============================================================================
 
 io.on('connection', (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
   socket.emit('orders:init', orderManager.getActiveOrders());
-
-  socket.on('order:status', ({ orderId, kitchenStatus }) => {
-    try {
-      const order = orderManager.updateKitchenStatus(orderId, kitchenStatus);
-      if (order) io.emit('order:update', order);
-    } catch (err) {
-      console.error('Socket error:', err.message);
-    }
-  });
 
   socket.on('disconnect', () => {
     console.log(`🔌 Client disconnected: ${socket.id}`);
@@ -307,7 +175,7 @@ io.on('connection', (socket) => {
 // START
 // =============================================================================
 
-server.listen(config.port, async () => {
+server.listen(config.port, () => {
   console.log('');
   console.log('='.repeat(58));
   console.log('  🍔  thru.ai — Drive-Through AI (ElevenLabs Agent)');
@@ -315,12 +183,14 @@ server.listen(config.port, async () => {
   console.log(`  Server:      http://localhost:${config.port}`);
   console.log(`  Agent:       ${config.elevenLabsAgentId ? '✅ ' + config.elevenLabsAgentId : '❌ Not configured'}`);
   console.log(`  ElevenLabs:  ${config.elevenLabsApiKey ? '✅ API Key Set' : '❌ Missing'}`);
-  console.log(`  Menu DB:     ✅ SQLite (${menuDB.getAllItems().length} items)`);
-  console.log(`  Kitchen:     http://localhost:${config.port}/kitchen`);
+  console.log(`  Kiosk:       http://localhost:${config.port}`);
   console.log('='.repeat(58));
-
-  // Sync the menu prompt to the agent on startup
-  await syncAgentPromptIfNeeded();
-
   console.log('');
+
+  // Refresh agent menu on startup
+  if (config.elevenLabsAgentId && config.elevenLabsApiKey) {
+    menuService.refreshAgentMenu()
+      .then(() => console.log('✓ Agent menu refreshed with latest menu.json'))
+      .catch(err => console.error('❌ Failed to refresh agent menu:', err.message));
+  }
 });
