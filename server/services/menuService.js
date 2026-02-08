@@ -41,6 +41,7 @@ ORDER TRACKING:
 - When the customer confirms their final order: call update_order with status "complete"
 - Always include ALL current items in a single call, the total price, and the status
 - Example: If order has 1 burger, send 1 item. If they add fries, send 2 items total (burger + fries), NOT 3 items
+- PRICING: Each item's price should be the BASE price + any modifiers. For example, "Cheese Burger with extra patty" should have price $11.99 ($8.99 + $3.00), NOT $3.00 alone
 
 MENU:
 `;
@@ -82,7 +83,9 @@ PRICING NOTES:
 - Items with sizes use different prices per size (check the menu carefully)
 - Combos include a burger/sandwich + Regular Fries + Medium Fountain Drink for +$4.49
 - Combo upgrades available: Cheese Fries/Onion Rings (+$1.50), Large Drink (+$0.50)
-- Extras like bacon, avocado, fried egg can be added to any burger (check prices above)
+- CRITICAL: Extras (Extra patty, Add bacon, Add avocado, etc.) are MODIFIERS ONLY. They CANNOT be ordered alone. They MUST be added to a burger or sandwich. When calculating price, include BOTH the base item price AND the extra price.
+  * Example: "Cheese Burger with extra patty" = $8.99 (burger) + $3.00 (extra patty) = $11.99 total
+  * Example: "Classic Burger with bacon" = $7.99 (burger) + $1.50 (bacon) = $9.49 total
 
 CONVERSATION FLOW:
 1. Greet → Ask what they'd like to order
