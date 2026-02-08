@@ -6,7 +6,7 @@
 export const DEFAULT_CONFIG = {
   enabled: true,
   startDelay: 1000,        // 1s delay before auto-start
-  stopDelay: 2000,         // 2s delay before auto-stop
+  stopDelay: 3500,         // 3.5s delay before auto-stop
   detectionFPS: 3,         // Detections per second
   confidenceThreshold: 0.65, // Minimum confidence for person detection
   maxInferenceTime: 500,   // Max inference time before reducing FPS (ms)

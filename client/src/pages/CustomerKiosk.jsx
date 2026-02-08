@@ -137,12 +137,12 @@ export default function CustomerKiosk() {
 
     // Only auto-start if:
     // - Detection is enabled
-    // - Not already connected or connecting
+    // - In idle state (not connected or connecting)
     // - Person is detected
     // - Not in error state
     if (
       detectionEnabled &&
-      connectionStatus === 'idle' &&
+      (connectionStatus === 'idle' || connectionStatus === 'disconnected') &&
       isPersonDetected &&
       !detectionError
     ) {
@@ -412,6 +412,7 @@ export default function CustomerKiosk() {
   const isConnecting = connectionStatus === 'connecting';
   const isSpeaking = agentMode === 'speaking' && isActive;
   const isListening = agentMode === 'listening' && isActive;
+  const isIdle = connectionStatus === 'idle' || connectionStatus === 'disconnected';
 
   // ---------------------------------------------------------------------------
   // Render
@@ -436,7 +437,7 @@ export default function CustomerKiosk() {
           </div>
           <div className="flex items-center gap-3">
             {/* Detection Status Indicator */}
-            {connectionStatus === 'idle' && (
+            {isIdle && (
               <DetectionStatusIndicator
                 isPersonDetected={isPersonDetected}
                 detectionConfidence={detectionConfidence}
@@ -475,7 +476,7 @@ export default function CustomerKiosk() {
       </header>
 
       {/* MAIN */}
-      {connectionStatus === 'idle' ? (
+      {isIdle ? (
         <div className="flex-1 flex items-center justify-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -527,7 +528,7 @@ export default function CustomerKiosk() {
       )}
 
       {/* FOOTER */}
-      {connectionStatus !== 'idle' && (
+      {!isIdle && (
         <footer className="bg-white border-t border-gray-200 px-6 py-2 shadow-sm">
           <AnimatePresence>
             {error && (
