@@ -220,6 +220,7 @@ export default function CustomerKiosk() {
       const { signedUrl, orderId: newOrderId, order: newOrder } = await res.json();
 
       orderIdRef.current = newOrderId;
+      console.log(`📋 Order session started. OrderID: ${newOrderId}`);
       setOrder(newOrder);
 
       // Start ElevenLabs conversation
@@ -311,13 +312,26 @@ export default function CustomerKiosk() {
 
             // Send to server for kitchen display
             try {
-              await fetch('/api/orders/update', {
+              if (!orderIdRef.current) {
+                console.error('❌ No orderIdRef.current - cannot update server!');
+                return 'Order updated locally only (no server sync)';
+              }
+
+              console.log(`📡 Sending order update to server. OrderID: ${orderIdRef.current}`);
+              const response = await fetch('/api/orders/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ orderId: orderIdRef.current, items, total, status }),
               });
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ Server update failed:', response.status, errorData);
+              } else {
+                console.log('✅ Server update successful');
+              }
             } catch (e) {
-              console.warn('Failed to update server:', e);
+              console.error('❌ Failed to update server:', e);
             }
 
             return 'Order updated successfully';
