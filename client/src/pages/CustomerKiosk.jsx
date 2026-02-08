@@ -8,7 +8,7 @@
 //
 // =============================================================================
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   UtensilsCrossed,
@@ -22,6 +22,10 @@ import {
 import { Conversation } from '@elevenlabs/client';
 import OrderPanel from '../components/OrderPanel';
 import MenuDisplay from '../components/MenuDisplay';
+import { usePersonDetection } from '../hooks/usePersonDetection';
+import DetectionStatusIndicator from '../components/DetectionStatusIndicator';
+import CameraPreview from '../components/CameraPreview';
+import { getDetectionConfig, saveDetectionConfig } from '../utils/personDetectionHelper';
 
 export default function CustomerKiosk() {
   // ---------------------------------------------------------------------------
@@ -40,10 +44,37 @@ export default function CustomerKiosk() {
   const [textInput, setTextInput] = useState('');
   const [showTextInput, setShowTextInput] = useState(false);
 
+  // Person detection state
+  const detectionConfig = useMemo(() => getDetectionConfig(), []);
+  const [detectionEnabled, setDetectionEnabled] = useState(() => detectionConfig.enabled);
+  const [showCameraPreview, setShowCameraPreview] = useState(false);
+
   // Refs
   const conversationRef = useRef(null);
   const animFrameRef = useRef(null);
   const orderIdRef = useRef(null);
+  const autoStartTimerRef = useRef(null);
+  const autoStopTimerRef = useRef(null);
+
+  // ---------------------------------------------------------------------------
+  // Person Detection Hook
+  // ---------------------------------------------------------------------------
+  const {
+    isPersonDetected,
+    detectionConfidence,
+    isModelLoading,
+    isDetectionActive,
+    error: detectionError,
+    videoElement,
+    currentFPS,
+    startDetection,
+    stopDetection,
+    toggleDetection,
+  } = usePersonDetection({
+    autoStart: detectionEnabled,
+    fps: detectionConfig.detectionFPS,
+    confidenceThreshold: detectionConfig.confidenceThreshold,
+  });
 
   // ---------------------------------------------------------------------------
   // Audio Visualization — reads frequency data from the Conversation instance
@@ -93,6 +124,78 @@ export default function CustomerKiosk() {
       .then(data => setMenu(data))
       .catch(err => console.error('Failed to load menu:', err));
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // Auto-start when person detected for configured delay (default: 1s)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    // Clear any existing timer
+    if (autoStartTimerRef.current) {
+      clearTimeout(autoStartTimerRef.current);
+      autoStartTimerRef.current = null;
+    }
+
+    // Only auto-start if:
+    // - Detection is enabled
+    // - Not already connected or connecting
+    // - Person is detected
+    // - Not in error state
+    if (
+      detectionEnabled &&
+      connectionStatus === 'idle' &&
+      isPersonDetected &&
+      !detectionError
+    ) {
+      console.log(`Person detected, auto-starting in ${detectionConfig.startDelay}ms...`);
+      autoStartTimerRef.current = setTimeout(() => {
+        console.log('Auto-starting conversation...');
+        handleStartOrder();
+      }, detectionConfig.startDelay);
+    }
+
+    return () => {
+      if (autoStartTimerRef.current) {
+        clearTimeout(autoStartTimerRef.current);
+        autoStartTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPersonDetected, connectionStatus, detectionEnabled, detectionError, detectionConfig.startDelay]);
+
+  // ---------------------------------------------------------------------------
+  // Auto-stop when person leaves for configured delay (default: 5s)
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    // Clear any existing timer
+    if (autoStopTimerRef.current) {
+      clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = null;
+    }
+
+    // Only auto-stop if:
+    // - Currently connected
+    // - Person is NOT detected
+    // - Detection is active (not in error state)
+    if (
+      connectionStatus === 'connected' &&
+      !isPersonDetected &&
+      isDetectionActive
+    ) {
+      console.log(`Person left, auto-stopping in ${detectionConfig.stopDelay}ms...`);
+      autoStopTimerRef.current = setTimeout(() => {
+        console.log('Auto-stopping conversation...');
+        handleEndOrder();
+      }, detectionConfig.stopDelay);
+    }
+
+    return () => {
+      if (autoStopTimerRef.current) {
+        clearTimeout(autoStopTimerRef.current);
+        autoStopTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPersonDetected, connectionStatus, isDetectionActive, detectionConfig.stopDelay]);
 
   // ---------------------------------------------------------------------------
   // Start Order — connect to ElevenLabs Agent
@@ -267,6 +370,28 @@ export default function CustomerKiosk() {
   }, []);
 
   // ---------------------------------------------------------------------------
+  // Detection Handlers
+  // ---------------------------------------------------------------------------
+  const handleToggleDetection = useCallback(() => {
+    const newEnabled = !detectionEnabled;
+    setDetectionEnabled(newEnabled);
+    saveDetectionConfig({ ...detectionConfig, enabled: newEnabled });
+
+    if (newEnabled) {
+      startDetection();
+    } else {
+      stopDetection();
+    }
+  }, [detectionEnabled, detectionConfig, startDetection, stopDetection]);
+
+  const handleRetryDetection = useCallback(() => {
+    stopDetection();
+    setTimeout(() => {
+      startDetection();
+    }, 500);
+  }, [startDetection, stopDetection]);
+
+  // ---------------------------------------------------------------------------
   // Derived
   // ---------------------------------------------------------------------------
   const isActive = connectionStatus === 'connected';
@@ -280,22 +405,37 @@ export default function CustomerKiosk() {
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
       {/* HEADER */}
-      <header className="bg-white border-b border-gray-200 px-8 py-5 shadow-sm">
+      <header className="bg-white border-b border-gray-200 px-6 py-2 shadow-sm">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <motion.div
-              className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center shadow-md"
+              className="w-9 h-9 bg-gray-900 rounded-lg flex items-center justify-center shadow-md"
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 400 }}
             >
-              <UtensilsCrossed className="w-7 h-7 text-white" />
+              <UtensilsCrossed className="w-5 h-5 text-white" />
             </motion.div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Burger Express</h1>
-              <p className="text-xs text-gray-500 font-medium">AI-Powered Drive-Thru</p>
+              <h1 className="text-lg font-bold text-gray-900 tracking-tight">Burger Express</h1>
+              <p className="text-[10px] text-gray-500 font-medium">AI-Powered Drive-Thru</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Detection Status Indicator */}
+            {connectionStatus === 'idle' && (
+              <DetectionStatusIndicator
+                isPersonDetected={isPersonDetected}
+                detectionConfidence={detectionConfidence}
+                isModelLoading={isModelLoading}
+                isDetectionActive={isDetectionActive}
+                error={detectionError}
+                onRetry={handleRetryDetection}
+                onToggle={handleToggleDetection}
+                enabled={detectionEnabled}
+              />
+            )}
+
+            {/* Connection Status */}
             {isActive ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -352,7 +492,7 @@ export default function CustomerKiosk() {
           </motion.div>
         </div>
       ) : (
-        <div className="flex-1 flex overflow-hidden gap-6 p-6">
+        <div className="flex-1 flex overflow-hidden gap-4 p-3">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -374,7 +514,7 @@ export default function CustomerKiosk() {
 
       {/* FOOTER */}
       {connectionStatus !== 'idle' && (
-        <footer className="bg-white border-t border-gray-200 px-8 py-6 shadow-sm">
+        <footer className="bg-white border-t border-gray-200 px-6 py-2 shadow-sm">
           <AnimatePresence>
             {error && (
               <motion.div
@@ -408,23 +548,23 @@ export default function CustomerKiosk() {
               </motion.button>
             </motion.div>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-1.5">
               {/* Voice status + visualization */}
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex items-center gap-8">
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-4">
                   {/* Audio bars left */}
-                  <div className="flex items-end gap-1.5 h-20 w-20 justify-center">
+                  <div className="flex items-end gap-1 h-10 w-12 justify-center">
                     {audioLevels.slice(0, 3).map((level, i) => (
                       <motion.div
                         key={`l${i}`}
-                        className={`w-2 rounded-full ${
+                        className={`w-1.5 rounded-full ${
                           isSpeaking
                             ? 'bg-gray-700'
                             : isListening
                             ? 'bg-green-500'
                             : 'bg-gray-300'
                         }`}
-                        animate={{ height: isActive ? Math.max(8, level * 64) : 8 }}
+                        animate={{ height: isActive ? Math.max(4, level * 36) : 4 }}
                         transition={{ duration: 0.1, ease: "easeOut" }}
                       />
                     ))}
@@ -440,7 +580,7 @@ export default function CustomerKiosk() {
                       />
                     )}
                     <motion.div
-                      className={`relative z-10 w-24 h-24 rounded-full flex items-center justify-center text-white shadow-lg ${
+                      className={`relative z-10 w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg ${
                         isConnecting
                           ? 'bg-gray-500'
                           : isSpeaking
@@ -453,41 +593,41 @@ export default function CustomerKiosk() {
                       transition={{ type: "spring", stiffness: 400 }}
                     >
                       {isConnecting ? (
-                        <Loader2 className="w-10 h-10 animate-spin" />
+                        <Loader2 className="w-5 h-5 animate-spin" />
                       ) : isSpeaking ? (
                         <motion.div
                           animate={{ scale: [1, 1.1, 1] }}
                           transition={{ duration: 0.8, repeat: Infinity }}
                         >
-                          <Volume2 className="w-10 h-10" />
+                          <Volume2 className="w-5 h-5" />
                         </motion.div>
                       ) : (
-                        <Mic className="w-10 h-10" />
+                        <Mic className="w-5 h-5" />
                       )}
                     </motion.div>
                   </div>
 
                   {/* Audio bars right */}
-                  <div className="flex items-end gap-1.5 h-20 w-20 justify-center">
+                  <div className="flex items-end gap-1 h-10 w-12 justify-center">
                     {audioLevels.slice(2, 5).map((level, i) => (
                       <motion.div
                         key={`r${i}`}
-                        className={`w-2 rounded-full ${
+                        className={`w-1.5 rounded-full ${
                           isSpeaking
                             ? 'bg-gray-700'
                             : isListening
                             ? 'bg-green-500'
                             : 'bg-gray-300'
                         }`}
-                        animate={{ height: isActive ? Math.max(8, level * 64) : 8 }}
+                        animate={{ height: isActive ? Math.max(4, level * 36) : 4 }}
                         transition={{ duration: 0.1, ease: "easeOut" }}
                       />
                     ))}
                   </div>
                 </div>
 
-                <p className="text-lg font-semibold text-gray-700">
-                  {isConnecting ? 'Connecting to AI...' : isSpeaking ? '🔊 AI Speaking' : isListening ? '🎤 Listening' : 'Ready'}
+                <p className="text-xs font-semibold text-gray-700">
+                  {isConnecting ? 'Connecting...' : isSpeaking ? '🔊 Speaking' : isListening ? '🎤 Listening' : 'Ready'}
                 </p>
               </div>
 
@@ -547,6 +687,14 @@ export default function CustomerKiosk() {
           )}
         </footer>
       )}
+
+      {/* Camera Preview (Optional) */}
+      <CameraPreview
+        videoElement={videoElement}
+        isPersonDetected={isPersonDetected}
+        showPreview={showCameraPreview}
+        onTogglePreview={() => setShowCameraPreview(!showCameraPreview)}
+      />
     </div>
   );
 }

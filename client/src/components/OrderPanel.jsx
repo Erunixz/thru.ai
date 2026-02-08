@@ -104,14 +104,21 @@ export default function OrderPanel({ order }) {
                     )}
 
                     {/* Modifiers (no pickles, extra cheese, etc.) */}
-                    {item.modifiers && item.modifiers.length > 0 && (
+                    {item.modifiers && (
                       <p className="text-sm text-gray-500 mt-1 italic">
-                        {item.modifiers.map(m => {
-                          if (typeof m === 'string') return m;
-                          if (m?.type) return m.type;
-                          if (m?.name) return m.name;
-                          return JSON.stringify(m);
-                        }).join(', ')}
+                        {(() => {
+                          // Handle modifiers as string or array
+                          const modifiers = Array.isArray(item.modifiers)
+                            ? item.modifiers
+                            : [item.modifiers];
+
+                          return modifiers.map(m => {
+                            if (typeof m === 'string') return m;
+                            if (m?.type) return m.type;
+                            if (m?.name) return m.name;
+                            return JSON.stringify(m);
+                          }).join(', ');
+                        })()}
                       </p>
                     )}
                   </div>
