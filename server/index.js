@@ -137,6 +137,90 @@ app.get('/api/orders', (req, res) => {
   res.json(orderManager.getActiveOrders());
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/kitchen/orders — All orders for kitchen display
+// ---------------------------------------------------------------------------
+app.get('/api/kitchen/orders', (req, res) => {
+  res.json(orderManager.getKitchenOrders());
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/kitchen/status — Update kitchen status for an order
+// ---------------------------------------------------------------------------
+app.post('/api/kitchen/status', (req, res) => {
+  try {
+    const { orderId, kitchenStatus } = req.body;
+    if (!orderId) return res.status(400).json({ error: 'Missing orderId' });
+    if (!kitchenStatus) return res.status(400).json({ error: 'Missing kitchenStatus' });
+
+    const validStatuses = ['new', 'preparing', 'ready', 'completed'];
+    if (!validStatuses.includes(kitchenStatus)) {
+      return res.status(400).json({ error: 'Invalid kitchen status' });
+    }
+
+    const order = orderManager.updateKitchenStatus(orderId, kitchenStatus);
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+
+    io.emit('kitchen:status', order);
+    console.log(`👨‍🍳 Order #${order.orderNumber} → ${kitchenStatus}`);
+
+    res.json(order);
+  } catch (error) {
+    console.error('❌ Kitchen status update error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/kitchen/order/:orderId — Delete an order
+// ---------------------------------------------------------------------------
+app.delete('/api/kitchen/order/:orderId', (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = orderManager.getOrder(orderId);
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Store order info before deletion for the response
+    const deletedOrder = { ...order };
+
+    orderManager.deleteOrder(orderId);
+    io.emit('kitchen:delete', { orderId, orderNumber: deletedOrder.orderNumber });
+    console.log(`🗑️  Order #${deletedOrder.orderNumber} deleted`);
+
+    res.json({ success: true, order: deletedOrder });
+  } catch (error) {
+    console.error('❌ Order deletion error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/kitchen/restore — Restore a deleted order
+// ---------------------------------------------------------------------------
+app.post('/api/kitchen/restore', (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!order || !order.id) {
+      return res.status(400).json({ error: 'Missing order data' });
+    }
+
+    // Re-create the order using the orderManager's internal map
+    const orderManager = require('./services/orderManager');
+    const restoredOrder = orderManager.restoreOrder(order);
+
+    io.emit('kitchen:restore', restoredOrder);
+    console.log(`↩️  Order #${restoredOrder.orderNumber} restored`);
+
+    res.json(restoredOrder);
+  } catch (error) {
+    console.error('❌ Order restore error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.get('/api/menu', (req, res) => res.json(menu));
 
 // ---------------------------------------------------------------------------
@@ -165,6 +249,7 @@ if (config.nodeEnv === 'production') {
 io.on('connection', (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
   socket.emit('orders:init', orderManager.getActiveOrders());
+  socket.emit('kitchen:init', orderManager.getKitchenOrders());
 
   socket.on('disconnect', () => {
     console.log(`🔌 Client disconnected: ${socket.id}`);

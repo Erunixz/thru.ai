@@ -43,9 +43,11 @@ function createOrder(sessionId) {
     items: [],                                                  // Order items from AI
     total: 0,                                                   // Running total
     status: 'in_progress',                                      // Order lifecycle status (in_progress → complete)
+    kitchenStatus: 'new',                                       // Kitchen status (new → preparing → ready → completed)
     createdAt: new Date().toISOString(),                        // When the order session started
     updatedAt: new Date().toISOString(),                        // Last update timestamp
     completedAt: null,                                          // When the customer confirmed
+    kitchenCompletedAt: null,                                   // When kitchen finished preparing
   };
 
   orders.set(sessionId, order);
@@ -122,6 +124,81 @@ function getAllOrders() {
 }
 
 /**
+ * Update kitchen status for an order.
+ *
+ * @param {string} sessionId - The session ID
+ * @param {string} kitchenStatus - The new kitchen status (new/preparing/ready/completed)
+ * @returns {Object|null} The updated order record, or null if not found
+ */
+function updateKitchenStatus(sessionId, kitchenStatus) {
+  const order = orders.get(sessionId);
+  if (!order) return null;
+
+  order.kitchenStatus = kitchenStatus;
+  order.updatedAt = new Date().toISOString();
+
+  // Record when kitchen completes the order
+  if (kitchenStatus === 'completed' && !order.kitchenCompletedAt) {
+    order.kitchenCompletedAt = new Date().toISOString();
+  }
+
+  orders.set(sessionId, order);
+  return order;
+}
+
+/**
+ * Get orders by kitchen status.
+ *
+ * @param {string} kitchenStatus - Filter by kitchen status
+ * @returns {Array} Array of order records
+ */
+function getOrdersByKitchenStatus(kitchenStatus) {
+  const filtered = [];
+  for (const order of orders.values()) {
+    if (order.kitchenStatus === kitchenStatus) {
+      filtered.push(order);
+    }
+  }
+  // Sort by creation time (oldest first)
+  filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  return filtered;
+}
+
+/**
+ * Get all orders for kitchen display (excludes fully completed orders older than 1 hour).
+ *
+ * @returns {Array} Array of order records
+ */
+function getKitchenOrders() {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const kitchenOrders = [];
+
+  for (const order of orders.values()) {
+    // Show orders that aren't kitchen-completed, or were completed less than 1 hour ago
+    if (order.kitchenStatus !== 'completed' ||
+        (order.kitchenCompletedAt && new Date(order.kitchenCompletedAt) > oneHourAgo)) {
+      kitchenOrders.push(order);
+    }
+  }
+
+  // Sort by creation time (oldest first)
+  kitchenOrders.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  return kitchenOrders;
+}
+
+/**
+ * Restore a previously deleted order.
+ *
+ * @param {Object} orderData - The complete order object to restore
+ * @returns {Object} The restored order record
+ */
+function restoreOrder(orderData) {
+  // Put the order back into the map
+  orders.set(orderData.id, orderData);
+  return orderData;
+}
+
+/**
  * Delete an order (cleanup).
  *
  * @param {string} sessionId
@@ -133,8 +210,12 @@ function deleteOrder(sessionId) {
 module.exports = {
   createOrder,
   updateOrder,
+  updateKitchenStatus,
   getOrder,
   getActiveOrders,
   getAllOrders,
+  getOrdersByKitchenStatus,
+  getKitchenOrders,
+  restoreOrder,
   deleteOrder,
 };

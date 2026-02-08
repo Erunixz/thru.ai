@@ -15,6 +15,7 @@
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import CustomerKiosk from './pages/CustomerKiosk';
+import KitchenDisplay from './pages/KitchenDisplay';
 
 export default function App() {
   return (
@@ -22,6 +23,9 @@ export default function App() {
       <Routes>
         {/* Customer-facing kiosk — the main drive-thru ordering screen */}
         <Route path="/" element={<CustomerKiosk />} />
+
+        {/* Kitchen display — employee-facing order management system */}
+        <Route path="/kitchen" element={<KitchenDisplay />} />
       </Routes>
     </BrowserRouter>
   );
