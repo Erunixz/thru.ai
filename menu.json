@@ -1,81 +1,124 @@
 {
-  "_comment": "=== BURGER EXPRESS MENU === This JSON file is the single source of truth for all menu items. It gets injected into Claude's system prompt so the AI knows exactly what's available, prices, sizes, and allowed modifications. To add/remove items, just edit this file and restart main.py.",
-
   "burgers": {
-    "_comment": "Burgers are the core product. Each burger has a base price, a list of allowed modifiers (customisations), and a human-readable description. Claude uses the description to explain items to customers.",
-
     "Classic Burger": {
-      "price": 5.99,
-      "modifiers": ["no pickles", "no onions", "extra cheese", "no lettuce", "add bacon"],
-      "description": "Beef patty with lettuce, tomato, pickles, onions"
-    },
-    "Cheeseburger": {
-      "price": 6.49,
-      "modifiers": ["no pickles", "no onions", "extra cheese", "add bacon", "no lettuce"],
-      "description": "Beef patty with cheese, lettuce, tomato, pickles"
-    },
-    "Double Burger": {
       "price": 7.99,
-      "modifiers": ["no pickles", "no onions", "extra cheese", "add bacon"],
-      "description": "Two beef patties with all the fixings"
+      "description": "Beef patty, lettuce, tomato, onion, pickles, Burger Express sauce",
+      "modifiers": ["no pickles", "no onions", "extra cheese", "no lettuce", "add bacon", "add avocado", "add fried egg"]
+    },
+    "Cheese Burger": {
+      "price": 8.99,
+      "description": "Classic Burger + American cheese",
+      "modifiers": ["no pickles", "no onions", "extra cheese", "no lettuce", "add bacon", "add avocado", "add fried egg"]
+    },
+    "Double Cheese Burger": {
+      "price": 11.49,
+      "description": "Two beef patties, double American cheese, lettuce, tomato, pickles, Burger Express sauce",
+      "modifiers": ["no pickles", "no onions", "extra cheese", "no lettuce", "add bacon"]
+    },
+    "Bacon BBQ Burger": {
+      "price": 10.99,
+      "description": "Beef patty, crispy bacon, cheddar cheese, BBQ sauce, onion rings, lettuce",
+      "modifiers": ["no onions", "extra bacon", "extra cheese", "no lettuce"]
+    },
+    "Spicy Jalapeño Burger": {
+      "price": 10.49,
+      "description": "Beef patty, pepper jack cheese, jalapeños, chipotle mayo, lettuce, tomato",
+      "modifiers": ["no jalapeños", "extra jalapeños", "no cheese", "add bacon"]
+    },
+    "Mushroom Swiss Burger": {
+      "price": 10.49,
+      "description": "Beef patty, sautéed mushrooms, Swiss cheese, garlic aioli, lettuce",
+      "modifiers": ["extra mushrooms", "no mushrooms", "extra cheese", "add bacon"]
+    },
+    "Veggie Burger": {
+      "price": 9.49,
+      "description": "Plant-based patty, lettuce, tomato, onion, pickles, Burger Express sauce",
+      "modifiers": ["no pickles", "no onions", "add avocado", "add cheese"]
     }
   },
-
+  "chicken": {
+    "Crispy Chicken Sandwich": {
+      "price": 9.49,
+      "description": "Fried chicken breast, pickles, mayo, brioche bun",
+      "modifiers": ["no pickles", "no mayo", "add cheese", "add bacon"]
+    },
+    "Grilled Chicken Sandwich": {
+      "price": 9.49,
+      "description": "Grilled chicken breast, lettuce, tomato, honey mustard, brioche bun",
+      "modifiers": ["no mustard", "add cheese", "add bacon", "add avocado"]
+    },
+    "Spicy Chicken Sandwich": {
+      "price": 9.99,
+      "description": "Fried chicken breast, spicy slaw, pepper jack cheese, chipotle mayo",
+      "modifiers": ["no slaw", "no cheese", "extra spicy", "add bacon"]
+    }
+  },
   "sides": {
-    "_comment": "Sides can have sizes (small/medium/large) with different prices. If an item has no 'sizes' key, it's one-size-only. Claude is instructed to ask about size when applicable.",
-
-    "Fries": {
-      "price": 2.99,
-      "sizes": ["small", "medium", "large"],
-      "size_prices": {"small": 2.99, "medium": 3.49, "large": 3.99}
+    "Regular Fries": {
+      "price": 3.49,
+      "description": "Classic golden fries"
+    },
+    "Cheese Fries": {
+      "price": 4.99,
+      "description": "Fries topped with melted cheese"
     },
     "Onion Rings": {
-      "price": 3.49,
-      "sizes": ["small", "medium", "large"],
-      "size_prices": {"small": 3.49, "medium": 3.99, "large": 4.49}
+      "price": 4.49,
+      "description": "Crispy battered onion rings"
     },
-    "Mozzarella Sticks": {
-      "price": 4.99
+    "Side Salad": {
+      "price": 3.99,
+      "description": "Fresh mixed greens with choice of dressing"
+    },
+    "Mac & Cheese": {
+      "price": 4.49,
+      "description": "Creamy macaroni and cheese"
     }
   },
-
   "drinks": {
-    "_comment": "Drinks all have sizes. The base 'price' is the small price. Claude is trained to suggest combos when a customer orders a burger + fries + drink separately (combos save money).",
-
-    "Coke": {
+    "Fountain Drink": {
       "price": 1.99,
       "sizes": ["small", "medium", "large"],
-      "size_prices": {"small": 1.99, "medium": 2.29, "large": 2.59}
+      "size_prices": {"small": 1.99, "medium": 2.49, "large": 2.99},
+      "description": "Coke, Sprite, Dr Pepper, Lemonade"
     },
-    "Sprite": {
-      "price": 1.99,
-      "sizes": ["small", "medium", "large"],
-      "size_prices": {"small": 1.99, "medium": 2.29, "large": 2.59}
+    "Milkshake": {
+      "price": 5.99,
+      "flavors": ["Vanilla", "Chocolate", "Strawberry"],
+      "description": "Hand-spun milkshake"
     },
-    "Lemonade": {
+    "Bottled Water": {
+      "price": 1.49,
+      "description": "Refreshing bottled water"
+    },
+    "Iced Tea": {
       "price": 2.49,
-      "sizes": ["small", "medium", "large"],
-      "size_prices": {"small": 2.49, "medium": 2.79, "large": 3.09}
+      "description": "Sweet or Unsweet"
     }
   },
-
   "combos": {
-    "_comment": "Combos bundle a burger + medium fries + medium drink at a discount. Claude proactively suggests these when it detects the customer ordering items separately. The 'includes' list tells Claude (and the kitchen) what's in each combo.",
-
-    "Combo #1": {
-      "price": 9.99,
-      "includes": ["Classic Burger", "Medium Fries", "Medium Drink"],
-      "description": "Classic Burger meal deal - save $2!"
-    },
-    "Combo #2": {
-      "price": 10.99,
-      "includes": ["Cheeseburger", "Medium Fries", "Medium Drink"],
-      "description": "Cheeseburger meal deal - save $2!"
-    },
-    "Combo #3": {
-      "price": 12.99,
-      "includes": ["Double Burger", "Large Fries", "Large Drink"],
-      "description": "Double Burger meal deal - save $3!"
+    "description": "Any burger or chicken sandwich can be made a combo for +$4.49 (includes Regular Fries + Medium Fountain Drink)",
+    "upgrade_options": {
+      "cheese_fries_or_onion_rings": 1.50,
+      "large_drink": 0.50
     }
-  }
+  },
+  "extras": {
+    "Extra patty": 3.00,
+    "Add bacon": 1.50,
+    "Add avocado": 1.50,
+    "Add fried egg": 1.00,
+    "Extra cheese": 0.75,
+    "Gluten-free bun": 1.00
+  },
+  "promotions": [
+    {
+      "name": "Combo Deal",
+      "description": "Get any two combos for $24.99 (saves up to $5)"
+    },
+    {
+      "name": "Free Milkshake Friday",
+      "description": "Free milkshake with any combo purchase on Friday"
+    }
+  ]
 }

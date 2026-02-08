@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "AI-powered drive-through ordering system using ElevenLabs Conversational AI Agent.",
   "main": "server/index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
+    "setup": "npm install && cd client && npm install && cd .. && python -m pip install -r requirements.txt",
     "dev": "concurrently --names SERVER,CLIENT --prefix-colors blue,green \"nodemon server/index.js\" \"cd client && npm run dev\"",
     "server": "node server/index.js",
     "server:dev": "nodemon server/index.js",
@@ -23,8 +27,5 @@
   "devDependencies": {
     "concurrently": "^9.1.2",
     "nodemon": "^3.1.9"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }
