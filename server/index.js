@@ -26,9 +26,10 @@ const config = require('./config');
 
 // Services (only order management — agent handles conversation)
 const orderManager = require('./services/orderManager');
+const menuService = require('./services/menuService');
 
 // Menu data
-const menu = require('./menu.json');
+const menu = require('../menu.json'); // Root menu.json (comprehensive menu)
 
 // =============================================================================
 // EXPRESS + SOCKET.IO SETUP
@@ -123,33 +124,26 @@ app.post('/api/orders/update', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// GET /api/orders — All active orders (kitchen display)
+// GET /api/orders — All active orders (for tracking/debugging)
 // ---------------------------------------------------------------------------
 app.get('/api/orders', (req, res) => {
   res.json(orderManager.getActiveOrders());
 });
 
+app.get('/api/menu', (req, res) => res.json(menu));
+
 // ---------------------------------------------------------------------------
-// POST /api/orders/:id/status — Kitchen staff updates order status
+// POST /api/admin/refresh-menu — Refresh agent with current menu
 // ---------------------------------------------------------------------------
-app.post('/api/orders/:id/status', (req, res) => {
+app.post('/api/admin/refresh-menu', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { kitchenStatus } = req.body;
-    if (!kitchenStatus) return res.status(400).json({ error: 'Missing kitchenStatus' });
-
-    const order = orderManager.updateKitchenStatus(id, kitchenStatus);
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-
-    io.emit('order:update', order);
-    console.log(`📦 Order #${order.orderNumber} → ${kitchenStatus}`);
-    res.json(order);
+    await menuService.refreshAgentMenu();
+    res.json({ success: true, message: 'Agent menu refreshed successfully' });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('❌ Failed to refresh menu:', error);
+    res.status(500).json({ error: error.message });
   }
 });
-
-app.get('/api/menu', (req, res) => res.json(menu));
 
 if (config.nodeEnv === 'production') {
   app.get('*', (req, res) => {
@@ -158,21 +152,12 @@ if (config.nodeEnv === 'production') {
 }
 
 // =============================================================================
-// SOCKET.IO — Real-time kitchen display
+// SOCKET.IO — Real-time order updates
 // =============================================================================
 
 io.on('connection', (socket) => {
   console.log(`🔌 Client connected: ${socket.id}`);
   socket.emit('orders:init', orderManager.getActiveOrders());
-
-  socket.on('order:status', ({ orderId, kitchenStatus }) => {
-    try {
-      const order = orderManager.updateKitchenStatus(orderId, kitchenStatus);
-      if (order) io.emit('order:update', order);
-    } catch (err) {
-      console.error('Socket error:', err.message);
-    }
-  });
 
   socket.on('disconnect', () => {
     console.log(`🔌 Client disconnected: ${socket.id}`);
@@ -191,7 +176,14 @@ server.listen(config.port, () => {
   console.log(`  Server:      http://localhost:${config.port}`);
   console.log(`  Agent:       ${config.elevenLabsAgentId ? '✅ ' + config.elevenLabsAgentId : '❌ Not configured'}`);
   console.log(`  ElevenLabs:  ${config.elevenLabsApiKey ? '✅ API Key Set' : '❌ Missing'}`);
-  console.log(`  Kitchen:     http://localhost:${config.port}/kitchen`);
+  console.log(`  Kiosk:       http://localhost:${config.port}`);
   console.log('='.repeat(58));
   console.log('');
+
+  // Refresh agent menu on startup
+  if (config.elevenLabsAgentId && config.elevenLabsApiKey) {
+    menuService.refreshAgentMenu()
+      .then(() => console.log('✓ Agent menu refreshed with latest menu.json'))
+      .catch(err => console.error('❌ Failed to refresh agent menu:', err.message));
+  }
 });

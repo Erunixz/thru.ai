@@ -161,7 +161,17 @@ export default function CustomerKiosk() {
           update_order: async (parameters) => {
             console.log('🛒 Order update:', parameters);
 
-            const items = parameters?.items || [];
+            // Parse items if it's a JSON string (due to ElevenLabs tool limitations)
+            let items = parameters?.items || [];
+            if (typeof items === 'string') {
+              try {
+                items = JSON.parse(items);
+              } catch (e) {
+                console.error('Failed to parse items:', e);
+                items = [];
+              }
+            }
+
             const total = parameters?.total || 0;
             const status = parameters?.status || 'in_progress';
 
