@@ -1,4 +1,4 @@
-# thru.ai 🍔🎤
+# thru.io 🍔🎤
 
 AI-powered drive-through ordering system using ElevenLabs Conversational AI, Node.js, and React.
 
@@ -315,4 +315,5 @@ For issues or questions:
 ## License
 
 MIT
+
 
